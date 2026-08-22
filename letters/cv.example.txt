@@ -1,0 +1,31 @@
+YOUR NAME
+Your Street 1, 1234 AB Your City
+you@example.com | www.yourwebsite.com
+
+PROFESSIONAL EXPERIENCE
+
+Job Title | Company Name
+Month Year - Present
+One-sentence summary of what this role is responsible for.
+- A concrete responsibility or achievement
+- Another one, as specific as possible (numbers, scope, outcome)
+
+Previous Job Title | Previous Company
+Month Year - Month Year
+One-sentence summary of this role.
+- A concrete responsibility or achievement
+
+EDUCATION
+
+Degree Name | University Name
+Year-Year
+Field of study
+
+CORE SKILLS
+
+Category One: Skill, Skill, Skill
+Category Two: Skill, Skill, Skill
+
+ACTIVITIES & INTERESTS
+
+A short line about a hobby, side project, or personal interest worth mentioning.

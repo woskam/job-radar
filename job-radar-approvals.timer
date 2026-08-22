@@ -1,0 +1,10 @@
+[Unit]
+Description=Job Radar approval-worker timer (every ~90s)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=90s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

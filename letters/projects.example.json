@@ -1,0 +1,27 @@
+[
+  {
+    "id": "example-project-one",
+    "name": "Example Project One",
+    "one_liner": "A one-sentence description of what this project is and why it matters.",
+    "tech_stack": ["Python", "PostgreSQL", "React"],
+    "role": "Built solo, end to end",
+    "outcome": "The concrete result this achieved -- a number, a business outcome, or what changed",
+    "highlights": [
+      "A specific, concrete detail about what the project does",
+      "Another detail -- these get quoted directly in generated cover letters, so keep them factual and specific"
+    ],
+    "tags": ["ai", "automation", "data", "saas"]
+  },
+  {
+    "id": "example-project-two",
+    "name": "Example Project Two",
+    "one_liner": "A second project, ideally in a different domain so the letter generator has genuine variety to pick from.",
+    "tech_stack": ["TypeScript", "Next.js"],
+    "role": "Led a small team",
+    "outcome": "What this project shipped or achieved",
+    "highlights": [
+      "A highlight specific to this project"
+    ],
+    "tags": ["ecommerce", "product", "leadership"]
+  }
+]

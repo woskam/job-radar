@@ -1,0 +1,9 @@
+[Unit]
+Description=Job Radar approval-worker run (Telegram sync + letter generator)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/path/to/job-radar
+ExecStart=/path/to/job-radar/run_approvals.sh

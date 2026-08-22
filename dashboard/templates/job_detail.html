@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ job['title'] }} — Job Radar{% endblock %}
+
+{% block extra_style %}
+  .back-link { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); cursor: pointer; margin-bottom: 20px; }
+  .back-link:hover { color: var(--text); }
+  .detail-grid { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 22px; align-items: start; max-width: 1080px; }
+  .detail-col { display: flex; flex-direction: column; gap: 22px; }
+  .side-col { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 34px; }
+
+  .job-card { padding: 26px 26px 24px; }
+  .job-card .pills-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .job-card h1 { margin: 0; font-size: 27px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.2; }
+  .job-card .job-meta { margin-top: 8px; font-size: 14.5px; color: var(--text-body); }
+  .job-card .job-links { margin-top: 18px; display: flex; gap: 8px; }
+
+  .letter-card { padding: 22px 24px 20px; }
+  .letter-card .letter-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .letter-card h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .letter-card .word-count { font-size: 12px; color: var(--muted-2); }
+  .letter-card textarea {
+    width: 100%; min-height: 360px; padding: 18px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-subtle); font-size: 14px; line-height: 1.65; color: var(--text-body-2); resize: vertical;
+  }
+  .letter-card textarea:focus { outline: none; border-color: oklch(0.72 0.09 215); background: #fff; }
+  .letter-card .action-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .letter-card .action-row select {
+    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-input); background: #fff;
+    font-size: 13px; color: var(--text-body);
+  }
+  .saved-msg { color: #2a7a2a; font-size: 13px; margin: 0 0 10px; }
+
+  .status-card, .reasons-card { padding: 22px 24px; }
+  .status-card h2, .reasons-card h2 { margin: 0 0 16px; font-size: 15px; font-weight: 700; }
+  .timeline { display: flex; flex-direction: column; gap: 12px; }
+  .timeline-item { display: flex; gap: 11px; align-items: flex-start; }
+  .timeline-dot { width: 9px; height: 9px; border-radius: 99px; margin-top: 5px; flex: 0 0 auto; }
+  .timeline-label { font-size: 13.5px; font-weight: 600; }
+  .timeline-submeta { font-size: 12px; color: var(--muted-2); }
+  .timeline-divider { height: 1px; background: var(--divider); margin: 18px 0; }
+  .reason-input { width: 100%; margin-top: 10px; padding: 10px 13px; border-radius: 10px; border: 1px solid var(--border-input); font-size: 13px; }
+  .reasons-card .reason-row { display: flex; justify-content: space-between; font-size: 13px; }
+  .reasons-card .reason-row + .reason-row { margin-top: 9px; }
+  .reasons-card .reason-label { color: var(--text-body); }
+  .reasons-card .reason-value { color: var(--muted); }
+
+  @media (max-width: 1100px) {
+    .detail-grid { grid-template-columns: minmax(0,1fr); }
+    .side-col { position: static; }
+    .detail-grid > .side-col { order: -1; }
+  }
+{% endblock %}
+
+{% block content %}
+  <a href="{{ url_for('index') }}" class="back-link">&larr; Back to overview</a>
+
+  <div class="detail-grid">
+    <div class="detail-col">
+      <div class="card job-card">
+        {% set meta = status_meta(job['status']) %}
+        <div class="pills-row">
+          <span class="pill" style="background:{{ meta.bg }}; color:{{ meta.fg }};">{{ meta.label }}</span>
+          <span class="pill mono" style="background:#F2F0EA; color:#6E6A63;">match {{ '%.2f' | format(job['relevance_score'] or 0) }}</span>
+        </div>
+        <h1>{{ job['title'] }}</h1>
+        <div class="job-meta">{{ job['company'] }} · {{ job['location'] or '—' }}</div>
+        {% if job['url'] %}
+        <div class="job-links">
+          <a href="{{ job['url'] }}" target="_blank" class="btn">View posting &#8599;</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="card letter-card">
+        <div class="letter-head">
+          <h2>Draft letter</h2>
+          <span class="word-count mono"><span id="word-count">0</span> words</span>
+        </div>
+        {% if saved %}<p class="saved-msg">Saved.</p>{% endif %}
+        <form method="post" action="{{ url_for('save_draft', job_id=job['id']) }}">
+          <textarea id="letter-textarea" name="final_text">{{ (letter['final_text'] or letter['draft']) if letter else '' }}</textarea>
+          <div class="action-row">
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+        {% if letter %}
+        <form method="get" class="action-row" style="align-items:center;">
+          <select name="font">
+            {% for key, opt in font_options.items() %}
+            <option value="{{ key }}" {% if key == selected_font %}selected{% endif %}>{{ opt.label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" formaction="{{ url_for('download_docx', job_id=job['id']) }}" class="btn">Download .docx</button>
+          <button type="submit" formaction="{{ url_for('download_pdf', job_id=job['id']) }}" class="btn">Download .pdf</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="side-col">
+      <div class="card status-card">
+        <h2>Status</h2>
+        <div class="timeline">
+          {% for step in timeline %}
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:{{ 'oklch(0.6 0.15 25)' if step.get('danger') else ('var(--accent-dot)' if step.reached else '#DCD8D0') }};"></div>
+            <div>
+              <div class="timeline-label" style="{{ '' if step.reached else 'color:var(--muted-2);' }}">{{ step.label }}</div>
+              <div class="timeline-submeta mono">{{ step.submeta }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="timeline-divider"></div>
+        {% if job['status'] == 'pending_approval' %}
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}">
+          <input type="hidden" name="status" value="approved">
+          <button type="submit" class="btn btn-accent btn-full">Approve (write letter)</button>
+        </form>
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}" style="margin-top:8px;">
+          <input type="hidden" name="status" value="rejected">
+          <input type="text" name="reason" placeholder="reason (optional)" class="reason-input">
+          <button type="submit" class="btn btn-danger btn-full" style="margin-top:8px;">Reject</button>
+        </form>
+        {% elif job['status'] not in ('sent', 'rejected') %}
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}">
+          <input type="hidden" name="status" value="sent">
+          <button type="submit" class="btn btn-accent btn-full">Mark as sent</button>
+        </form>
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}" style="margin-top:8px;">
+          <input type="hidden" name="status" value="rejected">
+          <input type="text" name="reason" placeholder="reason (optional)" class="reason-input">
+          <button type="submit" class="btn btn-danger btn-full" style="margin-top:8px;">Reject</button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="card reasons-card">
+        <h2>Why this match</h2>
+        {% for reason in match_reasons %}
+        <div class="reason-row">
+          <span class="reason-label">{{ reason.label }}</span>
+          <span class="reason-value mono">{{ reason.value }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var ta = document.getElementById('letter-textarea');
+      var counter = document.getElementById('word-count');
+      function updateCount() {
+        var trimmed = ta.value.trim();
+        counter.textContent = trimmed ? trimmed.split(/\s+/).length : 0;
+      }
+      ta.addEventListener('input', updateCount);
+      updateCount();
+    })();
+  </script>
+{% endblock %}

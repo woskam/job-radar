@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Job Radar{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas:#F7F6F3; --surface:#FFFFFF; --surface-subtle:#FBFAF8;
+      --sidebar:#14140F; --sidebar-text:#EDEBE6; --sidebar-muted:#A8A49C;
+      --text:#1A1917; --text-body:#4A4740; --text-body-2:#2A2822;
+      --muted:#6E6A63; --muted-2:#8B867E; --placeholder:#A5A09A;
+      --border:#EAE7E0; --border-input:#E2DFD8; --border-hover:#C9C4BA;
+      --divider:#F2F0EA; --divider-2:#EFEDE7; --track:#EFEDE7; --neutral-bar:#C9C4BA;
+      --accent:oklch(0.55 0.09 215); --accent-hover:oklch(0.48 0.09 215);
+      --accent-bar:oklch(0.62 0.12 215); --accent-dot:oklch(0.65 0.12 215);
+      --logo:oklch(0.72 0.13 200); --danger-text:#8A5A55;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--canvas); }
+    body { font-family: Manrope, system-ui, sans-serif; color: var(--text); }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--accent-hover); }
+    ::placeholder { color: var(--placeholder); }
+    input, select, textarea, button { font-family: inherit; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+
+    .shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 236px; flex: 0 0 236px; background: var(--sidebar); color: var(--sidebar-text);
+      padding: 26px 18px; display: flex; flex-direction: column; gap: 34px;
+    }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+    .sidebar-logo-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--logo); }
+    .sidebar-logo-label { font-weight: 700; letter-spacing: -0.01em; font-size: 15px; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 3px; }
+    .sidebar-nav a {
+      padding: 9px 12px; border-radius: 9px; font-size: 14px; color: var(--sidebar-muted);
+      display: flex; justify-content: space-between;
+    }
+    .sidebar-nav a:hover { color: var(--sidebar-text); }
+    .sidebar-nav a.active { background: rgba(255,255,255,0.09); font-weight: 600; color: var(--sidebar-text); }
+    .sidebar-nav a span.count { font-size: 12px; opacity: 0.7; }
+    .sidebar-nav a.active span.count { opacity: 0.6; }
+    .sidebar-hint {
+      margin-top: auto; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.06);
+      font-size: 12.5px; line-height: 1.5; color: var(--sidebar-muted);
+    }
+    .sidebar-hint .mono { color: var(--sidebar-text); }
+
+    .main { flex: 1; min-width: 0; padding: 34px 40px 60px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+
+    .btn {
+      padding: 10px 15px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border-input); background: #fff; color: var(--text);
+      transition: background 120ms ease, border-color 120ms ease; display: inline-block;
+    }
+    .btn:hover { border-color: var(--border-hover); color: var(--text); }
+    .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .btn-primary:hover { background: #2A2A22; color: #fff; }
+    .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-accent:hover { background: var(--accent-hover); color: #fff; }
+    .btn-danger { color: var(--danger-text); }
+    .btn-danger:hover { border-color: #D9C3BF; background: #FDF8F7; }
+    .btn-full { width: 100%; text-align: center; }
+
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 600; }
+
+    @media (max-width: 1100px) {
+      .shell { flex-direction: column; }
+      .sidebar { width: 100%; flex: 0 0 auto; flex-direction: row; align-items: center; padding: 14px 18px; gap: 18px; overflow-x: auto; }
+      .sidebar-nav { flex-direction: row; gap: 6px; }
+      .sidebar-hint { display: none; }
+      .main { padding: 20px; }
+    }
+
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark"></div>
+        <div class="sidebar-logo-label">Job Radar</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' and not request.args.get('status') else '' }}">
+          <span>Jobs</span><span class="mono count">{{ sidebar_counts.total }}</span>
+        </a>
+        <a href="{{ url_for('index', status='letter_drafted') }}" class="{{ 'active' if request.args.get('status') == 'letter_drafted' else '' }}">
+          <span>Draft letters</span><span class="mono count">{{ sidebar_counts.letter_drafted }}</span>
+        </a>
+        <a href="{{ url_for('index', status='sent') }}" class="{{ 'active' if request.args.get('status') == 'sent' else '' }}">
+          <span>Sent</span><span class="mono count">{{ sidebar_counts.sent }}</span>
+        </a>
+        <a href="{{ url_for('index', status='rejected') }}" class="{{ 'active' if request.args.get('status') == 'rejected' else '' }}">
+          <span>Rejected</span><span class="mono count">{{ sidebar_counts.rejected }}</span>
+        </a>
+      </nav>
+      <div class="sidebar-hint">
+        Scores above <span class="mono">0.80</span> are the strongest matches. Start there.
+      </div>
+    </aside>
+    <main class="main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

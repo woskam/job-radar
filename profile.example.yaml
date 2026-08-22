@@ -1,0 +1,58 @@
+# Personal search profile -- copy this file to profile.yaml and fill in your
+# own keywords, location and contact details. profile.yaml is gitignored, so
+# your personal search preferences never get committed.
+keywords:
+  - "director"
+  - "senior manager"
+  - "product manager"
+  - "marketing manager"
+
+# Per-keyword weight in the title score (matching/scorer.py). Anything not
+# listed here counts as 1.0 (default). Use this to down-weight generic
+# keywords that would otherwise match too many junior/unrelated roles.
+keyword_weights:
+  manager: 0.5
+
+location:
+  center: "Amsterdam"
+  radius_km: 30
+  # Cities that get the full location bonus when scoring (see
+  # matching/scorer.py) -- not just `center`.
+  bonus_cities:
+    - "Amsterdam"
+    - "Utrecht"
+    - "Haarlem"
+  # Substrings that identify a location as being in your target country. Used
+  # to decide whether outside_netherlands_penalty should apply.
+  netherlands_markers:
+    - "netherlands"
+    - "nederland"
+    - "amsterdam"
+    - "utrecht"
+    - "haarlem"
+  # Substrings that identify a location as being abroad. A netherlands_marker
+  # match always overrules a foreign_markers match (e.g. "Rotterdam,
+  # Netherlands" matches "netherlands" here too, but stays counted as NL).
+  foreign_markers:
+    - "united states"
+    - "usa"
+    - "germany"
+    - "belgium"
+    - "united kingdom"
+  outside_netherlands_penalty: -2
+
+scoring:
+  threshold: 0.6
+  # Titles containing one of these words (word-boundary match) are always
+  # rejected, regardless of keyword/location score.
+  exclude_title_keywords:
+    - "internship"
+    - "intern"
+
+# Sender details used on the letterhead of downloaded cover letters
+# (dashboard/app.py's SENDER, letters/generator.py's prompt).
+sender:
+  name: "Your Name"
+  address: "Your Street 1, 1234 AB Your City"
+  email: "you@example.com"
+  url: "www.yourwebsite.com"
