@@ -1,0 +1,39 @@
+tagline: "YOUR TAGLINE HERE"
+pitch_plain: "One or two sentences pitching who you are and what you do — and, increasingly, "
+pitch_italic: "the part you want to stand out in italics."
+
+experience:
+  - title: "Job Title — Team or Focus Area"
+    company: "Company Name"
+    dates: "MONTH YEAR — PRESENT"
+    bullets:
+      - "A concrete responsibility or achievement"
+      - "**A bolded lead-in phrase** followed by supporting detail"
+  - title: "Previous Job Title"
+    company: "Previous Company"
+    dates: "MONTH YEAR — MONTH YEAR"
+    bullets:
+      - "A concrete responsibility, with a **bolded number or result** inline if useful"
+
+# Older/less relevant roles rendered as a single compact line instead of full bullets.
+compact_experience:
+  - title: "Job Title"
+    company: "Company Name"
+    description: "One-line summary of scope and focus"
+    dates: "YEAR — YEAR"
+
+projects_heading_suffix: "BUILT SOLO, END TO END"
+projects:
+  - name: "Project Name"
+    tech: "TECH · STACK · HERE"
+    description: "One-sentence outcome that matters."
+
+skills_table:
+  - label: "CATEGORY ONE"
+    text: "Skill · Skill · Skill · Skill"
+  - label: "CATEGORY TWO"
+    text: "Skill · Skill · Skill"
+  - label: "EDUCATION"
+    text: "Degree, University, Year–Year"
+  - label: "BEYOND WORK"
+    text: "A short line about hobbies or interests worth mentioning"

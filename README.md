@@ -9,6 +9,7 @@ An automated job-vacancy monitor and cover-letter drafting assistant, designed t
 - Sends you a Telegram message with **Approve**/**Reject** buttons for every match above your threshold -- nothing costs an API call until you say yes.
 - On approval, generates a personalized cover-letter draft (Claude API) from your CV and project history, detects the job posting's language, and writes the letter (and picks your CV) in that language.
 - Sends the finished draft back to you on Telegram, and keeps a local dashboard where you can review, edit, and download it as `.docx`/`.pdf` (with a letterhead) -- in three font choices.
+- The same dashboard also generates a downloadable CV -- a full-length version and a condensed one-page version, both with the same letterhead/font choices, in English and (optionally) Dutch.
 - **Nothing is ever sent automatically.** A letter sits in `letter_drafted` status until you mark it `sent` yourself, by hand, in the dashboard.
 
 ## Architecture
@@ -25,13 +26,17 @@ job-radar/
 │   └── scorer.py             # keyword/location scoring, loads + merges companies.yaml + profile.yaml
 ├── letters/
 │   ├── generator.py          # builds the Claude prompt, detects language, generates the draft
+│   ├── document_style.py     # shared letterhead (header/footer/fonts) for every downloadable document
+│   ├── cv_builder.py         # renders cv.txt into a letterhead-styled .docx/.pdf
+│   ├── cv_short_builder.py   # renders cv_short.yaml into a one-page .docx/.pdf resume
 │   ├── cv.example.txt        # template -- copy to cv.txt (and optionally cv_nl.txt) (gitignored)
+│   ├── cv_short.example.yaml # template -- copy to cv_short.yaml (and optionally cv_short_nl.yaml) (gitignored)
 │   ├── projects.example.json # template -- copy to projects.json (gitignored)
 │   └── example_cover_letter.txt  # optional: a sample of your own writing style/tone (gitignored)
 ├── notify/
 │   └── telegram_bot.py        # sendMessage/getUpdates wrappers, approval-request + letter delivery
 ├── dashboard/
-│   ├── app.py                 # Flask app: job list, letter editor, status actions, .docx/.pdf export
+│   ├── app.py                 # Flask app: job list, letter editor, status actions, .docx/.pdf export, CV downloads
 │   └── templates/
 ├── db/
 │   ├── schema.sql
@@ -47,16 +52,17 @@ job-radar/
 3. `cp profile.example.yaml profile.yaml` and edit your keywords, location, scoring preferences and sender details.
 4. `cp letters/cv.example.txt letters/cv.txt` and write your real CV. If you want letters written in Dutch too, also add `letters/cv_nl.txt` (optional -- falls back to the English CV if missing).
 5. `cp letters/projects.example.json letters/projects.json` and describe 2-4 of your own projects -- the generator picks the 2-3 most relevant ones per job based on tag overlap with the posting.
-6. Optionally add `letters/example_cover_letter.txt`, a letter you've written yourself, as a tone/style reference for the generator.
-7. Dry-run everything first: `./run.sh` then `./run_approvals.sh` -- with `DRY_RUN=true` this mocks the Claude API and Telegram sends, so nothing costs anything or reaches your phone yet.
-8. Once you're happy, set `DRY_RUN=false` and `SCRAPE_LIVE=true` in `.env` and run again for real.
-9. Install the systemd units for unattended operation: `cp job-radar.service.example job-radar.service` (and the same for `job-radar-approvals.service`), edit the `WorkingDirectory`/`ExecStart` paths to your actual install path, then:
-   ```
-   sudo cp job-radar*.service job-radar*.timer /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now job-radar.timer job-radar-approvals.timer
-   ```
-10. Run the dashboard: `python dashboard/app.py`, open `http://localhost:5000`.
+6. Optionally `cp letters/cv_short.example.yaml letters/cv_short.yaml` and fill in the one-page version of your CV (and `letters/cv_short_nl.yaml` for Dutch) -- lets you download a condensed resume from the dashboard's CV page alongside the full-length one.
+7. Optionally add `letters/example_cover_letter.txt`, a letter you've written yourself, as a tone/style reference for the generator.
+8. Dry-run everything first: `./run.sh` then `./run_approvals.sh` -- with `DRY_RUN=true` this mocks the Claude API and Telegram sends, so nothing costs anything or reaches your phone yet.
+9. Once you're happy, set `DRY_RUN=false` and `SCRAPE_LIVE=true` in `.env` and run again for real.
+10. Install the systemd units for unattended operation: `cp job-radar.service.example job-radar.service` (and the same for `job-radar-approvals.service`), edit the `WorkingDirectory`/`ExecStart` paths to your actual install path, then:
+    ```
+    sudo cp job-radar*.service job-radar*.timer /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now job-radar.timer job-radar-approvals.timer
+    ```
+11. Run the dashboard: `python dashboard/app.py`, open `http://localhost:5000`.
 
 ## Adding your own keywords
 
@@ -94,4 +100,4 @@ Most `ats` values were found by fetching the company's careers page and looking 
 - **Live LinkedIn/Indeed scraping is intentionally not wired up.** Build and test against saved HTML samples in `tests/sample_data/` first if you ever want to add it, and only enable it once you've reviewed the login flow yourself.
 - **Nothing is ever sent automatically.** The letter generator only ever produces a draft; you mark it `sent` yourself, by hand, in the dashboard.
 - **`DRY_RUN=true`** mocks the Claude API call and Telegram sends with placeholder text, so you can develop and test without incurring costs or noise on your phone.
-- Never commit `.env`, `profile.yaml`, your CV, or `letters/projects.json` -- see `.gitignore`.
+- Never commit `.env`, `profile.yaml`, your CV (`cv.txt`/`cv_nl.txt`/`cv_short.yaml`/`cv_short_nl.yaml`), or `letters/projects.json` -- see `.gitignore`.

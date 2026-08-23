@@ -15,6 +15,11 @@ Month Year - Month Year
 One-sentence summary of this role.
 - A concrete responsibility or achievement
 
+SELECTED PROJECTS
+
+Project Name | short tech stack
+One-sentence one-liner plus the outcome that matters.
+
 EDUCATION
 
 Degree Name | University Name

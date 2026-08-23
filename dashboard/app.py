@@ -3,7 +3,6 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import date
 from pathlib import Path
 
 from flask import Flask, redirect, render_template, request, send_file, url_for
@@ -12,8 +11,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from db.migrations import ensure_columns
-from letters.generator import detect_language
-from matching.scorer import load_config, load_profile, score_breakdown
+from letters.cv_builder import build_cv_docx, build_cv_pdf
+from letters.cv_short_builder import CV_SHORT_PATH_NL, build_short_cv_docx, build_short_cv_pdf
+from letters.document_style import DEFAULT_FONT, FONT_OPTIONS, SENDER
+from letters.generator import CV_PATH_NL, detect_language
+from matching.scorer import load_config, score_breakdown
 
 DB_PATH = Path(os.environ.get("JOB_RADAR_DB_PATH", ROOT / "db" / "job_radar.db"))
 
@@ -31,38 +33,6 @@ STATUS_META = {
     "rejected": {"label": "Rejected", "bg": "#FAF3F2", "fg": "#8A5A55"},
 }
 DEFAULT_STATUS_META = {"label": "Unknown", "bg": "#F4F1EA", "fg": "#6E6A63"}
-
-# Font options for the download -- deliberately limited to PDF's built-in
-# base fonts (no separate .ttf files to bundle/embed) paired with a
-# style-matching, universally available Word font.
-FONT_OPTIONS = {
-    "helvetica": {"label": "Modern (Helvetica/Arial)", "pdf": "Helvetica", "docx": "Arial"},
-    "times": {"label": "Classic (Times New Roman)", "pdf": "Times", "docx": "Times New Roman"},
-    "courier": {"label": "Typewriter (Courier)", "pdf": "Courier", "docx": "Courier New"},
-}
-DEFAULT_FONT = "helvetica"
-
-# Sender details for the header/footer on downloaded cover letters -- read
-# from profile.yaml (gitignored, personal), not hardcoded here and not parsed
-# out of cv.txt (too fragile).
-SENDER = load_profile()["sender"]
-# Same muted gray as the dashboard itself (--muted: #6E6A63), so the download
-# visually matches the same look and feel.
-MUTED_RGB = (0x6E, 0x6A, 0x63)
-MUTED_HEX = "6E6A63"
-
-MONTH_NAMES = {
-    "nl": ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"],
-    "en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-}
-
-
-def _format_date(language: str) -> str:
-    today = date.today()
-    month = MONTH_NAMES.get(language, MONTH_NAMES["en"])[today.month - 1]
-    if language == "nl":
-        return f"{today.day} {month} {today.year}"
-    return f"{month} {today.day}, {today.year}"
 
 
 def _font_choice() -> dict:
@@ -307,109 +277,6 @@ def save_draft(job_id):
     return redirect(url_for("job_detail", job_id=job_id, saved=1))
 
 
-def _docx_add_hyperlink(paragraph, url: str, text: str):
-    from docx.oxml import OxmlElement
-    from docx.oxml.ns import qn
-
-    part = paragraph.part
-    r_id = part.relate_to(
-        url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink", is_external=True
-    )
-    hyperlink = OxmlElement("w:hyperlink")
-    hyperlink.set(qn("r:id"), r_id)
-
-    run = OxmlElement("w:r")
-    rpr = OxmlElement("w:rPr")
-    color = OxmlElement("w:color")
-    color.set(qn("w:val"), MUTED_HEX)
-    rpr.append(color)
-    run.append(rpr)
-    text_el = OxmlElement("w:t")
-    text_el.text = text
-    run.append(text_el)
-    hyperlink.append(run)
-    paragraph._p.append(hyperlink)
-
-
-def _docx_add_border(paragraph, side: str):
-    from docx.oxml import OxmlElement
-    from docx.oxml.ns import qn
-
-    p_pr = paragraph._p.get_or_add_pPr()
-    p_bdr = OxmlElement("w:pBdr")
-    border = OxmlElement(f"w:{side}")
-    border.set(qn("w:val"), "single")
-    border.set(qn("w:sz"), "6")
-    border.set(qn("w:space"), "4")
-    border.set(qn("w:color"), MUTED_HEX)
-    p_bdr.append(border)
-    p_pr.append(p_bdr)
-
-
-def _build_docx_header(section, language: str, subject: str, font_name: str):
-    from docx.shared import Pt, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-
-    muted = RGBColor(*MUTED_RGB)
-    header = section.header
-    header.is_linked_to_previous = False
-
-    name_p = header.paragraphs[0]
-    run = name_p.add_run(SENDER["name"])
-    run.bold = True
-    run.font.size = Pt(13)
-    run.font.color.rgb = muted
-    run.font.name = font_name
-
-    date_p = header.add_paragraph()
-    date_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    date_run = date_p.add_run(_format_date(language))
-    date_run.font.size = Pt(9)
-    date_run.font.color.rgb = muted
-    date_run.font.name = font_name
-
-    address_p = header.add_paragraph()
-    address_run = address_p.add_run(SENDER["address"])
-    address_run.font.size = Pt(9)
-    address_run.font.color.rgb = muted
-    address_run.font.name = font_name
-
-    contact_p = header.add_paragraph()
-    _docx_add_hyperlink(contact_p, f"mailto:{SENDER['email']}", SENDER["email"])
-    sep_run = contact_p.add_run("  ·  ")
-    sep_run.font.size = Pt(9)
-    sep_run.font.color.rgb = muted
-    _docx_add_hyperlink(contact_p, f"https://{SENDER['url']}", SENDER["url"])
-    for run in contact_p.runs:
-        run.font.size = Pt(9)
-        run.font.name = font_name
-
-    subject_p = header.add_paragraph()
-    subject_run = subject_p.add_run(subject)
-    subject_run.bold = True
-    subject_run.font.size = Pt(10)
-    subject_run.font.color.rgb = muted
-    subject_run.font.name = font_name
-    _docx_add_border(subject_p, "bottom")
-
-
-def _build_docx_footer(section, font_name: str):
-    from docx.shared import Pt, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-
-    muted = RGBColor(*MUTED_RGB)
-    footer = section.footer
-    footer.is_linked_to_previous = False
-
-    line_p = footer.paragraphs[0]
-    line_run = line_p.add_run(f"{SENDER['name']} · {SENDER['email']} · {SENDER['url']}")
-    line_run.font.size = Pt(8)
-    line_run.font.color.rgb = muted
-    line_run.font.name = font_name
-    line_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _docx_add_border(line_p, "top")
-
-
 @app.route("/job/<int:job_id>/download.docx")
 def download_docx(job_id):
     conn = get_db()
@@ -423,17 +290,25 @@ def download_docx(job_id):
 
     from docx import Document
 
+    from letters.document_style import build_docx_footer, build_docx_header, docx_add_bullet, render_text_blocks
+
     font = _font_choice()
     language = letter["language"] or detect_language(letter["final_text"] or letter["draft"] or "")
     subject = f"Re: {job['title']} ({job['company']})"
-    text = letter["final_text"] or letter["draft"] or ""
+    # Textarea edits from the dashboard submit with \r\n line endings, which
+    # wouldn't match the "\n\n" paragraph-break/bullet-line checks below --
+    # normalize before splitting, not just for freshly AI-drafted text.
+    text = (letter["final_text"] or letter["draft"] or "").replace("\r\n", "\n").replace("\r", "\n")
 
     doc = Document()
     doc.styles["Normal"].font.name = font["docx"]
-    _build_docx_header(doc.sections[0], language, subject, font["docx"])
-    _build_docx_footer(doc.sections[0], font["docx"])
-    for paragraph in text.split("\n\n"):
-        doc.add_paragraph(paragraph)
+    build_docx_header(doc.sections[0], language, subject, font["docx"])
+    build_docx_footer(doc.sections[0], font["docx"])
+    render_text_blocks(
+        text,
+        add_paragraph=lambda t: doc.add_paragraph(t),
+        add_bullet=lambda t: docx_add_bullet(doc, t, font["docx"]),
+    )
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -444,54 +319,6 @@ def download_docx(job_id):
         download_name=_letter_filename(dict(job), "docx"),
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
-
-
-def _make_letter_pdf(font_family: str, language: str, subject: str):
-    from fpdf import FPDF
-    from fpdf.enums import XPos, YPos
-
-    class LetterPDF(FPDF):
-        def header(self):
-            self.set_font(font_family, "B", 13)
-            self.set_text_color(*MUTED_RGB)
-            self.cell(0, 6, SENDER["name"], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-            self.set_font(font_family, "", 9)
-            self.cell(0, 5, SENDER["address"], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            self.cell(
-                0, 5, f"{SENDER['email']}  ·  {SENDER['url']}",
-                new_x=XPos.LMARGIN, new_y=YPos.NEXT, link=f"mailto:{SENDER['email']}",
-            )
-            self.cell(0, 5, _format_date(language), align="R", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-            self.set_font(font_family, "B", 10)
-            self.cell(0, 6, subject, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-            self.set_draw_color(*MUTED_RGB)
-            self.set_line_width(0.3)
-            y = self.get_y() + 2
-            self.line(self.l_margin, y, self.w - self.r_margin, y)
-            self.set_y(y + 6)
-            self.set_text_color(0, 0, 0)
-            self.set_font(font_family, "", 11)
-
-        def footer(self):
-            self.set_y(-20)
-            self.set_draw_color(*MUTED_RGB)
-            self.set_line_width(0.3)
-            self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
-            self.set_y(-16)
-            self.set_font(font_family, "", 8)
-            self.set_text_color(*MUTED_RGB)
-            self.cell(
-                0, 5, f"{SENDER['name']} · {SENDER['email']} · {SENDER['url']}",
-                align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT,
-            )
-            self.cell(0, 5, f"{self.page_no()}/{{nb}}", align="C")
-
-    pdf = LetterPDF()
-    pdf.alias_nb_pages()
-    return pdf
 
 
 @app.route("/job/<int:job_id>/download.pdf")
@@ -505,20 +332,36 @@ def download_pdf(job_id):
     if not letter:
         return "no draft letter for this job", 404
 
+    from fpdf.enums import XPos, YPos
+
+    from letters.document_style import make_letterhead_pdf, pdf_add_bullet, render_text_blocks
+
     font = _font_choice()
     language = letter["language"] or detect_language(letter["final_text"] or letter["draft"] or "")
-    text = letter["final_text"] or letter["draft"] or ""
-    # Core PDF fonts only support latin-1 -- replace characters that don't fit
+    # Textarea edits from the dashboard submit with \r\n line endings, which
+    # wouldn't match the "\n\n" paragraph-break/bullet-line checks below --
+    # normalize before splitting, not just for freshly AI-drafted text.
+    text = (letter["final_text"] or letter["draft"] or "").replace("\r\n", "\n").replace("\r", "\n")
+    # Core PDF fonts only support cp1252 -- replace characters that don't fit
     # (e.g. a single non-Latin name) instead of crashing on one stray character.
-    safe_text = text.encode("latin-1", "replace").decode("latin-1")
-    subject = f"Re: {job['title']} ({job['company']})".encode("latin-1", "replace").decode("latin-1")
+    safe_text = text.encode("cp1252", "replace").decode("cp1252")
+    subject = f"Re: {job['title']} ({job['company']})".encode("cp1252", "replace").decode("cp1252")
 
-    pdf = _make_letter_pdf(font["pdf"], language, subject)
+    pdf = make_letterhead_pdf(font["pdf"], language, subject)
     pdf.add_page()
-    pdf.set_font(font["pdf"], size=11)
-    for paragraph in safe_text.split("\n\n"):
-        pdf.multi_cell(0, 6, paragraph)
+
+    def add_paragraph(t: str) -> None:
+        pdf.set_font(font["pdf"], size=11)
+        pdf.set_text_color(0, 0, 0)
+        pdf.multi_cell(0, 6, t, align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(4)
+
+    def add_bullet(t: str) -> None:
+        pdf.set_text_color(0, 0, 0)
+        pdf_add_bullet(pdf, t, font["pdf"], size=11, line_height=6)
+        pdf.ln(2)
+
+    render_text_blocks(safe_text, add_paragraph, add_bullet)
 
     buf = io.BytesIO(bytes(pdf.output()))
     buf.seek(0)
@@ -554,6 +397,73 @@ def update_status(job_id):
     conn.commit()
     conn.close()
     return redirect(url_for("index"))
+
+
+def _cv_filename(extension: str, variant: str) -> str:
+    name = SENDER["name"].replace(" ", "_")
+    suffix = "_short" if variant == "short" else ""
+    return f"CV_{name}{suffix}.{extension}"
+
+
+@app.route("/cv")
+def cv():
+    conn = get_db()
+    sidebar_counts = _sidebar_counts(conn)
+    conn.close()
+    variant = request.args.get("variant", "long")
+    has_dutch_cv = CV_SHORT_PATH_NL.exists() if variant == "short" else CV_PATH_NL.exists()
+    return render_template(
+        "cv.html",
+        font_options=FONT_OPTIONS,
+        selected_font=request.args.get("font", DEFAULT_FONT),
+        selected_lang=request.args.get("lang", "en"),
+        selected_variant=variant,
+        has_dutch_cv=has_dutch_cv,
+        sidebar_counts=sidebar_counts,
+    )
+
+
+@app.route("/cv/download.docx")
+def cv_download_docx():
+    font = _font_choice()
+    language = request.args.get("lang", "en")
+    variant = request.args.get("variant", "long")
+
+    doc = (
+        build_short_cv_docx(language=language, font_name=font["docx"])
+        if variant == "short"
+        else build_cv_docx(language=language, font_name=font["docx"])
+    )
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=_cv_filename("docx", variant),
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+
+
+@app.route("/cv/download.pdf")
+def cv_download_pdf():
+    font = _font_choice()
+    language = request.args.get("lang", "en")
+    variant = request.args.get("variant", "long")
+
+    pdf = (
+        build_short_cv_pdf(language=language, font_family=font["pdf"])
+        if variant == "short"
+        else build_cv_pdf(language=language, font_family=font["pdf"])
+    )
+    buf = io.BytesIO(bytes(pdf.output()))
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=_cv_filename("pdf", variant),
+        mimetype="application/pdf",
+    )
 
 
 if __name__ == "__main__":

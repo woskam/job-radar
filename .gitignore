@@ -14,6 +14,8 @@ db/*.db.bak-*
 
 letters/cv.txt
 letters/cv_nl.txt
+letters/cv_short.yaml
+letters/cv_short_nl.yaml
 letters/projects.json
 letters/example_cover_letter.txt
 
