@@ -80,7 +80,13 @@ def select_relevant_projects(job: dict, projects: list[dict], n: int = 3) -> lis
 
 
 def build_prompt(
-    job: dict, cv_text: str, selected_projects: list[dict], example_letter: str = "", language: str = "en"
+    job: dict,
+    cv_text: str,
+    selected_projects: list[dict],
+    example_letter: str = "",
+    language: str = "en",
+    previous_draft: str = "",
+    feedback: str = "",
 ) -> tuple[str, str]:
     style_guide = STYLE_GUIDE_TEMPLATE.format(
         language_name=LANGUAGE_NAMES.get(language, "English"), sender_name=SENDER_NAME
@@ -105,24 +111,49 @@ def build_prompt(
         f"Job: {job.get('title')} at {job.get('company')}\n"
         f"Job description:\n{job.get('description', '')}\n\n"
         f"Relevant projects to use as evidence:\n{projects_text}\n\n"
-        "Write the cover letter draft."
     )
+    if previous_draft:
+        user_prompt += (
+            f"Here is a previous draft of this cover letter:\n\n{previous_draft}\n\n"
+            f"Feedback from {SENDER_NAME} on that draft:\n"
+            f"{feedback or '(no written feedback -- see the updated project selection above)'}\n\n"
+            "Write a new version of the cover letter draft that addresses this."
+        )
+    else:
+        user_prompt += "Write the cover letter draft."
     return system_prompt, user_prompt
 
 
 def generate_letter(
-    job: dict, cv_text: str, projects: list[dict], dry_run: bool, language: str = "en"
+    job: dict,
+    cv_text: str,
+    projects: list[dict],
+    dry_run: bool,
+    language: str = "en",
+    previous_draft: str = "",
+    feedback: str = "",
+    selected_project_ids: list[str] | None = None,
 ) -> str:
-    selected = select_relevant_projects(job, projects)
+    if selected_project_ids:
+        # An explicit pick (e.g. from the dashboard's regenerate-with-feedback
+        # picker) overrides the automatic tag-overlap selection entirely.
+        selected = [p for p in projects if p["id"] in selected_project_ids]
+    else:
+        selected = select_relevant_projects(job, projects)
     example_letter = load_example_letter() if EXAMPLE_LETTER_PATH.exists() else ""
-    system_prompt, user_prompt = build_prompt(job, cv_text, selected, example_letter, language)
+    system_prompt, user_prompt = build_prompt(
+        job, cv_text, selected, example_letter, language, previous_draft=previous_draft, feedback=feedback
+    )
 
     if dry_run:
         project_lines = "\n".join(f"- {p['name']}: {p['outcome']}" for p in selected)
+        header = "[DRY_RUN mock revision -- no real API call made]" if previous_draft else "[DRY_RUN mock draft -- no real API call made]"
+        feedback_line = f"Feedback: {feedback}\n" if feedback else ""
         return (
-            f"[DRY_RUN mock draft -- no real API call made]\n\n"
+            f"{header}\n\n"
             f"Application for {job.get('title')} at {job.get('company')}.\n\n"
             f"Projects used as evidence:\n{project_lines}\n"
+            f"{feedback_line}"
         )
 
     from anthropic import Anthropic

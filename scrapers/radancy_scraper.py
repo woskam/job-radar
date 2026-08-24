@@ -57,19 +57,33 @@ def parse_search_results(html: str, base_url: str, source: str) -> list[dict]:
     return list(jobs.values())
 
 
-def fetch_live_search(base_url: str, source: str, keywords: str = "", location: str = "") -> list[dict]:
+def fetch_live_search(base_url: str, source: str, keywords: str = "", location: str = "", path: str = "search-jobs") -> list[dict]:
     """
     Radancy/TalentBrew career sites render search results server-side at
     /search-jobs?k=<keywords>&l=<location> -- no login needed. Not every
     TalentBrew tenant does this (IKEA's instance renders client-side via an
     AJAX call that couldn't be reproduced without devtools); check this per
     new company before adding it to companies.yaml.
+
+    The `l=<location>` param isn't reliably honored by every tenant -- Citi's
+    (jobs.citi.com) silently ignores it and returns unfiltered global results.
+    For tenants like that, pass a tenant-specific pre-filtered `path` (e.g.
+    Citi's "location/netherlands-jobs/287/2750405/2", found via the tenant's
+    own site navigation) instead -- it's fetched directly with no k/l params,
+    since it's already scoped, and parsed with the same parse_search_results.
     """
-    resp = requests.get(
-        f"{base_url.rstrip('/')}/search-jobs",
-        params={"k": keywords, "l": location},
-        headers={"User-Agent": USER_AGENT},
-        timeout=15,
-    )
+    if path != "search-jobs":
+        resp = requests.get(
+            f"{base_url.rstrip('/')}/{path.lstrip('/')}",
+            headers={"User-Agent": USER_AGENT},
+            timeout=15,
+        )
+    else:
+        resp = requests.get(
+            f"{base_url.rstrip('/')}/search-jobs",
+            params={"k": keywords, "l": location},
+            headers={"User-Agent": USER_AGENT},
+            timeout=15,
+        )
     resp.raise_for_status()
     return parse_search_results(resp.text, base_url, source)

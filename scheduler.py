@@ -113,6 +113,18 @@ def scrape_radancy_live(config: dict) -> list[dict]:
         base_url = company.get("radancy_base_url")
         if not base_url:
             continue
+        # Some tenants (Citi) silently ignore the l=<location> search param
+        # and require a tenant-specific pre-filtered location page instead --
+        # fetched once (already scoped, no k/l params), not per-keyword.
+        radancy_path = company.get("radancy_path")
+        if radancy_path:
+            jobs = _safe_fetch(
+                f"radancy:{company['name']}:{radancy_path}",
+                fetch_radancy, base_url=base_url, source=company["name"], path=radancy_path,
+            )
+            for job in jobs or []:
+                jobs_by_key[(job["source"], job["external_id"])] = job
+            continue
         for keyword in config["keywords"]:
             jobs = _safe_fetch(
                 f"radancy:{company['name']}:{keyword}",

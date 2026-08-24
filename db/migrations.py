@@ -15,6 +15,20 @@ NEW_LETTER_COLUMNS = {
     "language": "TEXT",  # 'nl' / 'en', detected at generation time -- avoids re-detecting on download
 }
 
+# Added after the initial schema.sql shipped -- CREATE TABLE IF NOT EXISTS is
+# already idempotent, so no separate existence check is needed here like the
+# column migrations above need.
+NEW_TABLES = {
+    "interview_preps": """
+        CREATE TABLE IF NOT EXISTS interview_preps (
+            id INTEGER PRIMARY KEY,
+            job_id INTEGER REFERENCES jobs(id),
+            content TEXT,
+            generated_at TIMESTAMP
+        )
+    """,
+}
+
 
 def _ensure_table_columns(conn: sqlite3.Connection, table: str, new_columns: dict[str, str]) -> None:
     existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
@@ -31,4 +45,6 @@ def ensure_columns(conn: sqlite3.Connection) -> None:
 
     _ensure_table_columns(conn, "jobs", NEW_JOB_COLUMNS)
     _ensure_table_columns(conn, "letters", NEW_LETTER_COLUMNS)
+    for create_statement in NEW_TABLES.values():
+        conn.execute(create_statement)
     conn.commit()

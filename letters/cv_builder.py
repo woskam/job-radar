@@ -18,7 +18,9 @@ from letters.document_style import (
     MUTED_RGB,
     build_docx_footer,
     build_docx_header,
+    docx_add_inline_runs,
     make_letterhead_pdf,
+    pdf_write_inline,
 )
 from letters.generator import CV_PATH_EN, CV_PATH_NL, load_cv
 
@@ -134,9 +136,9 @@ def build_cv_docx(language: str = "en", font_name: str = "Arial"):
                 rest_run.font.name = font_name
                 rest_run.font.size = Pt(10.5)
             else:
-                run = p.add_run(item["text"])
-                run.font.name = font_name
-                run.font.size = Pt(10.5)
+                # Supports "[text](url)" (a real hyperlink, e.g. an App Store
+                # link) and "**bold**" inline, on top of plain text.
+                docx_add_inline_runs(p, item["text"], font_name, size=10.5)
 
     return doc
 
@@ -252,9 +254,11 @@ def build_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
                 pdf.write(5.6, item["rest"])
                 pdf.ln(5.6)
             else:
-                pdf.set_font(font_family, "", 10.5)
+                # Supports "[text](url)" (a real hyperlink, e.g. an App Store
+                # link) and "**bold**" inline, on top of plain text.
                 pdf.set_text_color(0, 0, 0)
-                pdf.multi_cell(0, 5.6, text, align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf_write_inline(pdf, text, font_family, 10.5, 5.6)
+                pdf.ln(5.6)
         pdf.ln(2)
 
     return pdf

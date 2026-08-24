@@ -2,17 +2,16 @@
 Renders the structured short-CV data (letters/cv_short.yaml / cv_short_nl.yaml)
 into a one-page docx/pdf resume with its own distinct layout -- a top-right
 tagline/contact block, an italic pitch line, right-aligned dates per entry,
-inline **bold** spans inside bullets, a left-accent-bar projects block, and a
-label/value skills table. Deliberately a separate module and layout from
-letters/cv_builder.py (the long CV): this design isn't a shorter version of
-that template, it has different layout primitives entirely (right-aligned
-dates, inline bold, a table) that the long CV's plain-text block parser can't
-represent. Reuses only the low-level shared bits from document_style.py
-(SENDER, MUTED_RGB, FONT_OPTIONS, docx_add_border) -- not its letter-specific
-header/footer builders.
+inline **bold**/[link](url) spans inside bullets and descriptions, a
+left-accent-bar projects block, and a label/value skills table. Deliberately
+a separate module and layout from letters/cv_builder.py (the long CV): this
+design isn't a shorter version of that template, it has different layout
+primitives entirely (right-aligned dates, inline markup, a table) that the
+long CV's plain-text block parser can't represent. Reuses the low-level
+shared bits from document_style.py (SENDER, MUTED_RGB, docx_add_border, the
+inline-markup renderers) -- not its letter-specific header/footer builders.
 """
 
-import re
 import sys
 from pathlib import Path
 
@@ -21,7 +20,14 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from letters.document_style import MUTED_RGB, SENDER, docx_add_border
+from letters.document_style import (
+    MUTED_RGB,
+    SENDER,
+    docx_add_border,
+    docx_add_inline_runs,
+    parse_inline_markup,
+    pdf_write_inline,
+)
 
 CV_SHORT_PATH_EN = ROOT / "letters" / "cv_short.yaml"
 CV_SHORT_PATH_NL = ROOT / "letters" / "cv_short_nl.yaml"
@@ -31,25 +37,10 @@ SECTION_TITLES = {
     "nl": {"experience": "ERVARING", "projects": "GESELECTEERDE PROJECTEN", "skills": "VAARDIGHEDEN & OPLEIDING"},
 }
 
-BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 # Approximates the dashboard's own accent blue (oklch(0.55 0.09 215)) for the
 # projects accent bar -- close enough for a small decorative rule, not meant
 # to be a pixel-exact color match.
 ACCENT_RGB = (90, 120, 150)
-
-
-def _split_bold(text: str) -> list[tuple[str, bool]]:
-    """Splits "plain **bold** plain" into [(text, is_bold), ...] fragments."""
-    parts = []
-    pos = 0
-    for m in BOLD_RE.finditer(text):
-        if m.start() > pos:
-            parts.append((text[pos:m.start()], False))
-        parts.append((m.group(1), True))
-        pos = m.end()
-    if pos < len(text):
-        parts.append((text[pos:], False))
-    return parts or [("", False)]
 
 
 def _city_from_address(address: str) -> str:
@@ -180,19 +171,7 @@ def build_short_cv_docx(language: str = "en", font_name: str = "Arial"):
         p.paragraph_format.first_line_indent = Pt(-16)
         p.paragraph_format.tab_stops.add_tab_stop(Pt(16))
         p.add_run("•\t").font.name = font_name
-        for fragment, is_bold in _split_bold(text):
-            run = p.add_run(fragment)
-            run.bold = is_bold
-            run.font.name = font_name
-            run.font.size = Pt(10)
-
-    def add_markdown_paragraph(text: str, size: float = 10) -> None:
-        p = doc.add_paragraph()
-        for fragment, is_bold in _split_bold(text):
-            run = p.add_run(fragment)
-            run.bold = is_bold
-            run.font.name = font_name
-            run.font.size = Pt(size)
+        docx_add_inline_runs(p, text, font_name, size=10)
 
     # EXPERIENCE
     add_section_heading(titles["experience"])
@@ -204,9 +183,7 @@ def build_short_cv_docx(language: str = "en", font_name: str = "Arial"):
     for entry in data.get("compact_experience", []):
         add_entry_line(entry["title"], entry["company"], entry["dates"])
         desc_p = doc.add_paragraph()
-        desc_run = desc_p.add_run(entry["description"])
-        desc_run.font.name = font_name
-        desc_run.font.size = Pt(10)
+        docx_add_inline_runs(desc_p, entry["description"], font_name, size=10)
 
     # SELECTED PROJECTS
     suffix = data.get("projects_heading_suffix")
@@ -227,9 +204,7 @@ def build_short_cv_docx(language: str = "en", font_name: str = "Arial"):
         desc_p = doc.add_paragraph()
         desc_p.paragraph_format.left_indent = Pt(12)
         docx_add_border(desc_p, "left")
-        desc_run = desc_p.add_run(project["description"])
-        desc_run.font.name = font_name
-        desc_run.font.size = Pt(9.5)
+        docx_add_inline_runs(desc_p, project["description"], font_name, size=9.5)
 
     # SKILLS & EDUCATION
     add_section_heading(titles["skills"])
@@ -256,17 +231,14 @@ BULLET_INDENT = 5
 PROJECT_INDENT = 4
 
 
-def _write_markdown(pdf, text: str, font_family: str, size: float, line_height: float) -> None:
-    for fragment, is_bold in _split_bold(text):
-        pdf.set_font(font_family, "B" if is_bold else "", size)
-        pdf.write(line_height, fragment)
-    pdf.ln(line_height)
-
-
 def _wrapped_line_count(pdf, text: str, avail_width: float) -> int:
     import math
 
-    width = pdf.get_string_width(re.sub(r"\*\*(.+?)\*\*", r"\1", text))
+    # Measure only the visible text -- "**"/"[...]"/"(url)" markup characters
+    # never render, so including them would overestimate the width and the
+    # resulting line/page-break math.
+    visible = "".join(frag["text"] for frag in parse_inline_markup(text))
+    width = pdf.get_string_width(visible)
     return max(1, math.ceil(width / avail_width))
 
 
@@ -360,7 +332,8 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         pdf.set_text_color(0, 0, 0)
         pdf.cell(BULLET_INDENT, 4.8, "•")
         pdf.set_left_margin(base_margin + BULLET_INDENT)
-        _write_markdown(pdf, text, font_family, 9.5, 4.8)
+        pdf_write_inline(pdf, text, font_family, 9.5, 4.8)
+        pdf.ln(4.8)
         pdf.set_left_margin(base_margin)
 
     def entry_height(entry: dict) -> float:
@@ -389,9 +362,9 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         desc_height = _wrapped_line_count(pdf, entry["description"], full_width) * 4.6
         _ensure_space(pdf, 5.2 + desc_height + 1.2)
         entry_line(entry["title"], entry["company"], entry["dates"])
-        pdf.set_font(font_family, "", 9)
         pdf.set_text_color(0, 0, 0)
-        pdf.multi_cell(0, 4.6, entry["description"], align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf_write_inline(pdf, entry["description"], font_family, 9, 4.6)
+        pdf.ln(4.6)
         pdf.ln(1.2)
 
     def project_height(project: dict) -> float:
@@ -423,9 +396,9 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         pdf.set_text_color(*MUTED_RGB)
         pdf.multi_cell(0, 4.8, project["tech"], align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-        pdf.set_font(font_family, "", 9)
         pdf.set_text_color(0, 0, 0)
-        pdf.multi_cell(0, 4.6, project["description"], align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf_write_inline(pdf, project["description"], font_family, 9, 4.6)
+        pdf.ln(4.6)
 
         pdf.set_left_margin(base_margin)
         y_end = pdf.get_y()

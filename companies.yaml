@@ -12,7 +12,7 @@
 #   Radancy/TalentBrew (4x) : Action, IKEA Netherlands, ING, politie
 #   SmartRecruiters (2x)    : ASICS, Wehkamp
 #   Eightfold AI (2x)       : Netflix, HSBC Netherlands
-#   Phenom (4x)             : eBay, de Volksbank, Mars Benelux, Procter & Gamble Benelux
+#   Phenom (4x)             : eBay, ASN Bank, Mars Benelux, Procter & Gamble Benelux
 #   GetNoticed (2x)         : KPN, T-Mobile Netherlands (now Odido)
 #   Avature (1x)            : L'Oréal Benelux
 #   Oracle Recruiting Cloud (4x): Uber, JPMorgan Amsterdam, American Express Benelux,
@@ -56,7 +56,8 @@ companies:
     career_url: "https://careers.nike.com/jobs"
     ats: "workday"
     workday_host: "nike.wd1.myworkdayjobs.com"
-    workday_site: "nke2"
+    workday_site: "nke"
+    note: "was wrongly configured as workday_site 'nke2' (US-only retail-store board, 320 postings, no NL); the real global/corporate site is 'nke' (744 postings incl. Amsterdam/Hilversum/Utrecht) -- found via the embedded apply links on careers.nike.com/nl/jobs, confirmed 2026-08-24"
   - name: "PUMA"
     category: "sportswear"
     career_url: "https://about.puma.com/en/careers/job-openings"
@@ -74,6 +75,7 @@ companies:
     career_url: "https://careers.smartrecruiters.com/ASICS"
     ats: "smartrecruiters"
     smartrecruiters_company_id: "ASICS"
+    note: "this SmartRecruiters instance only carries ASICS' Australia/Oceania retail postings (confirmed: totalFound=50, all AU) -- filtered out downstream by the location scorer anyway, so low-cost to keep. ASICS EMEA has its own NL-specific portal at asics.com/nl/en-nl/mk/careers/search-jobs/566 (found via web search, e.g. a Business Intelligence Engineer role in Hoofddorp), but it's behind an Akamai WAF that returns a hard Access Denied to both a plain curl and a browser-like User-Agent -- respected per the hard rule, not evaded. Revisit manually if ASICS NL hiring becomes a priority."
   - name: "VF Corp"
     category: "sportswear"
     career_url: "https://vfc.wd5.myworkdayjobs.com/vfc_careers"
@@ -242,6 +244,7 @@ companies:
     career_url: "https://www.pgcareers.com/netherlands"
     ats: "phenom"
     phenom_base_url: "https://www.pgcareers.com/netherlands"
+    note: "URL is a single-segment '/netherlands' path (not the usual '/{country}/{lang}'), so phenom_scraper's locale guess used to fall back to en_us and silently returned US jobs instead of NL -- fixed 2026-08-24, see phenom_scraper.py::_guess_locale"
   - name: "PepsiCo Benelux"
     category: "fmcg"
     career_url: "https://www.pepsicojobs.com/main/jobs?location=Netherlands"
@@ -422,7 +425,7 @@ companies:
     career_url: "https://rabobank.jobs/en/jobs/"
     ats: "unknown"
     note: "site blocks automated requests (WAF); check the platform manually"
-  - name: "de Volksbank"
+  - name: "ASN Bank"
     category: "banking"
     career_url: "https://werkenbij.devolksbank.nl/nl/nl/search-results"
     ats: "phenom"
@@ -471,7 +474,8 @@ companies:
     career_url: "https://jobs.citi.com/location/netherlands-jobs/287/2750405/2"
     ats: "radancy"
     radancy_base_url: "https://jobs.citi.com"
-    note: "search on Radancy, application backend on Workday"
+    radancy_path: "location/netherlands-jobs/287/2750405/2"
+    note: "search on Radancy, application backend on Workday. The /search-jobs?l=Netherlands param is silently ignored by this tenant (returns unfiltered global results) -- radancy_path points at Citi's own pre-filtered NL location page instead, confirmed live 2026-08-24"
   - name: "JPMorgan Amsterdam"
     category: "banking"
     career_url: "https://www.jpmorganchase.com/careers"

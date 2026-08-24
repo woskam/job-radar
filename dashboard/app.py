@@ -14,8 +14,18 @@ from db.migrations import ensure_columns
 from letters.cv_builder import build_cv_docx, build_cv_pdf
 from letters.cv_short_builder import CV_SHORT_PATH_NL, build_short_cv_docx, build_short_cv_pdf
 from letters.document_style import DEFAULT_FONT, FONT_OPTIONS, SENDER
-from letters.generator import CV_PATH_NL, detect_language
+from letters.generator import (
+    CV_PATH_NL,
+    detect_language,
+    generate_letter,
+    load_cv,
+    load_projects,
+    save_letter,
+)
+from letters.interview_prep import generate_interview_prep, save_interview_prep
 from matching.scorer import load_config, score_breakdown
+
+DRY_RUN = os.environ.get("DRY_RUN", "true").lower() == "true"
 
 DB_PATH = Path(os.environ.get("JOB_RADAR_DB_PATH", ROOT / "db" / "job_radar.db"))
 
@@ -30,6 +40,7 @@ STATUS_META = {
     "letter_drafted": {"label": "Letter ready", "bg": "oklch(0.95 0.035 95)", "fg": "oklch(0.45 0.08 80)"},
     "reviewed": {"label": "Reviewed", "bg": "oklch(0.95 0.03 215)", "fg": "oklch(0.45 0.09 215)"},
     "sent": {"label": "Sent", "bg": "oklch(0.95 0.05 145)", "fg": "oklch(0.45 0.1 145)"},
+    "interview": {"label": "Interview", "bg": "oklch(0.95 0.04 300)", "fg": "oklch(0.45 0.1 300)"},
     "rejected": {"label": "Rejected", "bg": "#FAF3F2", "fg": "#8A5A55"},
 }
 DEFAULT_STATUS_META = {"label": "Unknown", "bg": "#F4F1EA", "fg": "#6E6A63"}
@@ -61,6 +72,7 @@ def _sidebar_counts(conn: sqlite3.Connection) -> dict:
         "total": conn.execute("SELECT COUNT(*) FROM jobs WHERE status != 'new'").fetchone()[0],
         "letter_drafted": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'letter_drafted'").fetchone()[0],
         "sent": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'sent'").fetchone()[0],
+        "interview": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'interview'").fetchone()[0],
         "rejected": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'rejected'").fetchone()[0],
     }
 
@@ -234,19 +246,26 @@ def job_detail(job_id):
     letter = conn.execute(
         "SELECT * FROM letters WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
     ).fetchone()
+    interview_prep = conn.execute(
+        "SELECT * FROM interview_preps WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
     sidebar_counts = _sidebar_counts(conn)
     conn.close()
     return render_template(
         "job_detail.html",
         job=job,
         letter=letter,
+        interview_prep=interview_prep,
         saved=request.args.get("saved"),
+        regenerated=request.args.get("regenerated"),
+        prep_generated=request.args.get("prep_generated"),
         status_meta=status_meta,
         sidebar_counts=sidebar_counts,
         match_reasons=_match_reasons(dict(job)),
         timeline=_timeline(job, letter),
         font_options=FONT_OPTIONS,
         selected_font=request.args.get("font", DEFAULT_FONT),
+        all_projects=load_projects(),
     )
 
 
@@ -275,6 +294,67 @@ def save_draft(job_id):
     conn.commit()
     conn.close()
     return redirect(url_for("job_detail", job_id=job_id, saved=1))
+
+
+@app.route("/job/<int:job_id>/regenerate", methods=["POST"])
+def regenerate_letter(job_id):
+    feedback = request.form.get("feedback", "").strip()
+    project_ids = request.form.getlist("project_ids")
+    if not feedback and not project_ids:
+        return redirect(url_for("job_detail", job_id=job_id))
+
+    conn = get_db()
+    job = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    letter = conn.execute(
+        "SELECT * FROM letters WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
+    conn.close()
+
+    previous_draft = (letter["final_text"] or letter["draft"] or "") if letter else ""
+    language = (letter["language"] if letter else None) or detect_language(job["description"] or job["title"] or "")
+
+    draft = generate_letter(
+        dict(job),
+        cv_text=load_cv(language),
+        projects=load_projects(),
+        dry_run=DRY_RUN,
+        language=language,
+        previous_draft=previous_draft,
+        feedback=feedback,
+        selected_project_ids=project_ids or None,
+    )
+
+    conn = get_db()
+    save_letter(conn, job_id, draft, language=language)
+    conn.close()
+    return redirect(url_for("job_detail", job_id=job_id, regenerated=1))
+
+
+@app.route("/job/<int:job_id>/interview_prep", methods=["POST"])
+def interview_prep(job_id):
+    conn = get_db()
+    job = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    letter = conn.execute(
+        "SELECT * FROM letters WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
+    conn.close()
+
+    letter_text = (letter["final_text"] or letter["draft"] or "") if letter else ""
+    language = (letter["language"] if letter else None) or detect_language(job["description"] or job["title"] or "")
+
+    content = generate_interview_prep(
+        dict(job),
+        cv_text=load_cv(language),
+        projects=load_projects(),
+        dry_run=DRY_RUN,
+        language=language,
+        letter_text=letter_text,
+    )
+
+    conn = get_db()
+    save_interview_prep(conn, job_id, content)
+    conn.close()
+    return redirect(url_for("job_detail", job_id=job_id, prep_generated=1))
 
 
 @app.route("/job/<int:job_id>/download.docx")
@@ -378,7 +458,7 @@ def update_status(job_id):
     # Only updates the status in the database. Doesn't send/post anything --
     # actually sending the application is done by you, outside this dashboard.
     new_status = request.form["status"]
-    if new_status not in ("sent", "rejected", "approved"):
+    if new_status not in ("sent", "rejected", "approved", "interview"):
         return "invalid status", 400
     conn = get_db()
     if new_status == "rejected":

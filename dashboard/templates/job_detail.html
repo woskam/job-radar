@@ -29,6 +29,30 @@
     font-size: 13px; color: var(--text-body);
   }
   .saved-msg { color: #2a7a2a; font-size: 13px; margin: 0 0 10px; }
+  .prep-content {
+    white-space: pre-wrap; font-size: 14px; line-height: 1.65; color: var(--text-body-2);
+    padding: 18px; border-radius: 12px; background: var(--surface-subtle); border: 1px solid var(--border);
+  }
+
+  .regenerate-card { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--divider); }
+  .regenerate-card h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+  .regenerate-card .hint { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+  .project-picker {
+    display: flex; flex-direction: column; gap: 2px; max-height: 190px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: 10px; padding: 6px; margin-bottom: 10px;
+    background: var(--surface-subtle);
+  }
+  .project-option {
+    display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  }
+  .project-option:hover { background: #fff; }
+  .project-option input { margin-top: 3px; flex: 0 0 auto; }
+  .project-option .project-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .project-option .project-one-liner { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .feedback-input {
+    width: 100%; min-height: 70px; padding: 10px 13px; border-radius: 10px; border: 1px solid var(--border-input);
+    font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;
+  }
 
   .status-card, .reasons-card { padding: 22px 24px; }
   .status-card h2, .reasons-card h2 { margin: 0 0 16px; font-size: 15px; font-weight: 700; }
@@ -93,8 +117,42 @@
           <button type="submit" formaction="{{ url_for('download_docx', job_id=job['id']) }}" class="btn">Download .docx</button>
           <button type="submit" formaction="{{ url_for('download_pdf', job_id=job['id']) }}" class="btn">Download .pdf</button>
         </form>
+
+        <div class="regenerate-card">
+          <h3>Not quite right?</h3>
+          <p class="hint">Pick which projects it should use as evidence, add any other feedback, and get a new draft.</p>
+          {% if regenerated %}<p class="saved-msg">Regenerated.</p>{% endif %}
+          <form method="post" action="{{ url_for('regenerate_letter', job_id=job['id']) }}">
+            <div class="project-picker">
+              {% for project in all_projects %}
+              <label class="project-option">
+                <input type="checkbox" name="project_ids" value="{{ project.id }}">
+                <span>
+                  <div class="project-name">{{ project.name }}</div>
+                  <div class="project-one-liner">{{ project.one_liner }}</div>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+            <textarea name="feedback" class="feedback-input" placeholder="Anything else to change? (optional)"></textarea>
+            <div class="action-row">
+              <button type="submit" class="btn btn-primary">Regenerate with this</button>
+            </div>
+          </form>
+        </div>
         {% endif %}
       </div>
+
+      {% if interview_prep %}
+      <div class="card letter-card">
+        <div class="letter-head">
+          <h2>Interview prep</h2>
+          <span class="word-count mono">{{ interview_prep['generated_at'] }}</span>
+        </div>
+        {% if prep_generated %}<p class="saved-msg">Generated.</p>{% endif %}
+        <div class="prep-content">{{ interview_prep['content'] }}</div>
+      </div>
+      {% endif %}
     </div>
 
     <div class="side-col">
@@ -122,7 +180,18 @@
           <input type="text" name="reason" placeholder="reason (optional)" class="reason-input">
           <button type="submit" class="btn btn-danger btn-full" style="margin-top:8px;">Reject</button>
         </form>
-        {% elif job['status'] not in ('sent', 'rejected') %}
+        {% elif job['status'] == 'rejected' %}
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}">
+          <input type="hidden" name="status" value="approved">
+          <button type="submit" class="btn btn-accent btn-full">Approve anyway (write letter)</button>
+        </form>
+        {% elif job['status'] in ('sent', 'interview') %}
+        <form method="post" action="{{ url_for('interview_prep', job_id=job['id']) }}">
+          <button type="submit" class="btn btn-accent btn-full">
+            {{ "Regenerate interview prep" if interview_prep else "Generate interview prep" }}
+          </button>
+        </form>
+        {% elif job['status'] != 'sent' %}
         <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}">
           <input type="hidden" name="status" value="sent">
           <button type="submit" class="btn btn-accent btn-full">Mark as sent</button>

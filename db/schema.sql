@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     description TEXT,
     scraped_at TIMESTAMP,
     relevance_score REAL,
-    status TEXT DEFAULT 'new',  -- new / scored / pending_approval / approved / letter_drafted / reviewed / sent / rejected
+    status TEXT DEFAULT 'new',  -- new / scored / pending_approval / approved / letter_drafted / reviewed / sent / interview / rejected
     UNIQUE (source, external_id)  -- external_id is only unique per source, not globally
     -- rejected_at / rejected_stage / rejected_reason are added via
     -- db/migrations.py (ensure_columns), not here -- see that file
@@ -22,6 +22,15 @@ CREATE TABLE IF NOT EXISTS letters (
     generated_at TIMESTAMP,
     edited BOOLEAN DEFAULT 0,
     final_text TEXT
+);
+
+-- One row per generated interview-prep briefing (never overwritten, same
+-- history-preserving pattern as `letters`) -- see letters/interview_prep.py.
+CREATE TABLE IF NOT EXISTS interview_preps (
+    id INTEGER PRIMARY KEY,
+    job_id INTEGER REFERENCES jobs(id),
+    content TEXT,
+    generated_at TIMESTAMP
 );
 
 -- Small key/value table for lightweight app state, such as the last-processed

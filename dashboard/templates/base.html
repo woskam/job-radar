@@ -98,6 +98,9 @@
         <a href="{{ url_for('index', status='sent') }}" class="{{ 'active' if request.args.get('status') == 'sent' else '' }}">
           <span>Sent</span><span class="mono count">{{ sidebar_counts.sent }}</span>
         </a>
+        <a href="{{ url_for('index', status='interview') }}" class="{{ 'active' if request.args.get('status') == 'interview' else '' }}">
+          <span>Interview</span><span class="mono count">{{ sidebar_counts.interview }}</span>
+        </a>
         <a href="{{ url_for('index', status='rejected') }}" class="{{ 'active' if request.args.get('status') == 'rejected' else '' }}">
           <span>Rejected</span><span class="mono count">{{ sidebar_counts.rejected }}</span>
         </a>

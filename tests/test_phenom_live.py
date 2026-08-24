@@ -20,7 +20,7 @@ from scrapers.phenom_scraper import fetch_live_search
 # (see the fetch_live_search docstring in scrapers/phenom_scraper.py).
 COMPANIES = [
     {"source": "eBay", "base_url": "https://jobs.ebayinc.com/us/en"},
-    {"source": "de Volksbank", "base_url": "https://werkenbij.devolksbank.nl/nl/nl"},
+    {"source": "ASN Bank", "base_url": "https://werkenbij.devolksbank.nl/nl/nl"},
     {"source": "Mars Benelux", "base_url": "https://careers.mars.com/nl/nl"},
 ]
 

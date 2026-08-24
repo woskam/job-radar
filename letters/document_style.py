@@ -6,6 +6,7 @@ downloads and letters/cv_builder.py's CV downloads so both stay visually
 consistent without duplicating this code.
 """
 
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -46,7 +47,7 @@ def format_date(language: str) -> str:
     return f"{month} {today.day}, {today.year}"
 
 
-def docx_add_hyperlink(paragraph, url: str, text: str):
+def docx_add_hyperlink(paragraph, url: str, text: str, font_name: str = None, size: float = None):
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
 
@@ -62,6 +63,18 @@ def docx_add_hyperlink(paragraph, url: str, text: str):
     color = OxmlElement("w:color")
     color.set(qn("w:val"), MUTED_HEX)
     rpr.append(color)
+    # A hyperlink's <w:r> is nested inside <w:hyperlink>, not a direct child
+    # of the paragraph, so python-docx's paragraph.runs can't see it to style
+    # it afterwards the normal way -- font/size have to be set here instead.
+    if font_name:
+        rfonts = OxmlElement("w:rFonts")
+        rfonts.set(qn("w:ascii"), font_name)
+        rfonts.set(qn("w:hAnsi"), font_name)
+        rpr.append(rfonts)
+    if size is not None:
+        sz = OxmlElement("w:sz")
+        sz.set(qn("w:val"), str(int(size * 2)))  # half-points
+        rpr.append(sz)
     run.append(rpr)
     text_el = OxmlElement("w:t")
     text_el.text = text
@@ -263,3 +276,64 @@ def render_text_blocks(text: str, add_paragraph, add_bullet) -> None:
                 buffer.append(line)
         if buffer:
             add_paragraph(" ".join(buffer))
+
+
+INLINE_MARKUP_RE = re.compile(r"\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)]+)\)")
+
+
+def parse_inline_markup(text: str) -> list[dict]:
+    """
+    Splits "plain **bold** [link text](https://example.com) plain" into
+    fragments: [{"text": ..., "bold": bool, "link": str | None}, ...].
+    Deliberately simple and non-nested -- CV/letter content never needs bold
+    and a link in the same span.
+    """
+    fragments = []
+    pos = 0
+    for m in INLINE_MARKUP_RE.finditer(text):
+        if m.start() > pos:
+            fragments.append({"text": text[pos:m.start()], "bold": False, "link": None})
+        if m.group(1) is not None:
+            fragments.append({"text": m.group(1), "bold": True, "link": None})
+        else:
+            fragments.append({"text": m.group(2), "bold": False, "link": m.group(3)})
+        pos = m.end()
+    if pos < len(text):
+        fragments.append({"text": text[pos:], "bold": False, "link": None})
+    return fragments or [{"text": "", "bold": False, "link": None}]
+
+
+def docx_add_inline_runs(paragraph, text: str, font_name: str, size: float = None) -> None:
+    """
+    Adds runs for parse_inline_markup(text)'s fragments to an existing
+    paragraph -- bold spans render bold, link spans render as a real
+    hyperlink (docx_add_hyperlink) instead of visible raw URL text.
+    """
+    from docx.shared import Pt
+
+    for frag in parse_inline_markup(text):
+        if not frag["text"]:
+            continue
+        if frag["link"]:
+            docx_add_hyperlink(paragraph, frag["link"], frag["text"], font_name=font_name, size=size)
+        else:
+            run = paragraph.add_run(frag["text"])
+            run.bold = frag["bold"]
+            run.font.name = font_name
+            if size is not None:
+                run.font.size = Pt(size)
+
+
+def pdf_write_inline(pdf, text: str, font_family: str, size: float, line_height: float) -> None:
+    """
+    Writes parse_inline_markup(text)'s fragments with pdf.write(), which
+    flows at the current position and wraps back to the page's left margin
+    like normal text -- bold spans switch to a bold font, link spans use
+    write()'s own `link` param so the fragment is clickable without a
+    visible raw URL. Caller is responsible for the trailing pdf.ln(...).
+    """
+    for frag in parse_inline_markup(text):
+        if not frag["text"]:
+            continue
+        pdf.set_font(font_family, "B" if frag["bold"] else "", size)
+        pdf.write(line_height, frag["text"], link=frag["link"] or "")

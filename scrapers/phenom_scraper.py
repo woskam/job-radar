@@ -9,14 +9,17 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 def _guess_locale(base_url: str) -> str:
     # Phenom career URLs are structured as https://{host}/{country}/{lang}/...
     # (e.g. "/us/en", "/nl/nl") -- the widgets call expects a "lang" field as
-    # "{lang}_{country}" (e.g. "en_us"). Purely cosmetic/for logging on
-    # Phenom's side (see the fetch_live_search docstring); if the pattern
-    # isn't recognized, we fall back to "en_us".
+    # "{lang}_{country}" (e.g. "en_us"). Some tenants (P&G: "/netherlands",
+    # a single full-word segment, no lang code) don't match that pattern --
+    # "en_us" is NOT a safe fallback there: tested live against P&G and it
+    # hard-filters to US-only results, unlike every other value tried
+    # (including "" and nonsense strings), which all returned the same
+    # NL-heavy result set. So fall back to "" instead, confirmed 2026-08-24.
     parts = [p for p in urlparse(base_url).path.split("/") if p]
     if len(parts) >= 2 and re.fullmatch(r"[a-z]{2}", parts[0]) and re.fullmatch(r"[a-z]{2}", parts[1]):
         country, lang = parts[0], parts[1]
         return f"{lang}_{country}"
-    return "en_us"
+    return ""
 
 
 def parse_search_results(data: dict, base_url: str, source: str) -> list[dict]:
@@ -49,7 +52,7 @@ def fetch_live_search(base_url: str, source: str, keywords: str = "", limit: int
     too. Discovered by searching the HTML for the embedded "phApp" config
     (var phApp = phApp || {...}) where "widgetApiEndpoint" points at this URL.
 
-    Confirmed at eBay (jobs.ebayinc.com), de Volksbank (werkenbij.devolksbank.nl)
+    Confirmed at eBay (jobs.ebayinc.com), ASN Bank (werkenbij.devolksbank.nl)
     and Mars Benelux (careers.mars.com, search/listing layer only -- the
     application form runs separately on Workday).
 
