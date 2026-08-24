@@ -4,18 +4,18 @@
 # scraper per company.
 #
 # Platform clusters (for prioritizing which scraper to build first):
-#   Workday (13x)          : Nike, PUMA, New Balance, VF Corp, Columbia Sportswear,
+#   Workday (14x)           : Nike, PUMA, New Balance, VF Corp, Columbia Sportswear,
 #                             PVH, Levi Strauss, Zalando, Unilever, Philips,
-#                             Samsung Benelux, Sony Benelux, NIBC Bank
-#   SAP SuccessFactors (7x) : adidas, Under Armour, MediaMarkt NL, C&A, Heineken,
-#                             Triodos Bank, Knab
+#                             Samsung Benelux, Sony Benelux, NIBC Bank, Accenture
+#   SAP SuccessFactors (8x) : adidas, Under Armour, MediaMarkt NL, C&A, Heineken,
+#                             Triodos Bank, Knab, EY
 #   Radancy/TalentBrew (3x) : IKEA Netherlands, ING, politie
 #   Dropr (2x)              : Action, ICI Paris XL
 #   Google Careers (1x)     : Google (reverse-engineered internal Closure/WIZ
 #                             page-data format, not a documented API)
-#   SmartRecruiters (2x)    : ASICS, Wehkamp
+#   SmartRecruiters (3x)    : ASICS, Wehkamp, Roland Berger
 #   Eightfold AI (2x)       : Netflix, HSBC Netherlands
-#   Phenom (4x)             : eBay, ASN Bank, Mars Benelux, Procter & Gamble Benelux
+#   Phenom (5x)             : eBay, ASN Bank, Mars Benelux, Procter & Gamble Benelux, BCG
 #   GetNoticed (2x)         : KPN, T-Mobile Netherlands (now Odido)
 #   Avature (1x)            : L'Oréal Benelux
 #   Oracle Recruiting Cloud (4x): Uber, JPMorgan Amsterdam, American Express Benelux,
@@ -34,20 +34,26 @@
 #   werkenvoornederland.nl (6x): AIVD, MIVD, Rijkswaterstaat, Belastingdienst, Douane, DUO
 #   UWV (1x)                : UWV
 #   custom-built site, own scraper (2x): Mollie, VodafoneZiggo
-#   custom/unknown, not yet built (22x): G-Star RAW, Scotch & Soda, Suitsupply,
+#   custom/unknown, not yet built (26x): G-Star RAW, Scotch & Soda, Suitsupply,
 #                             WE Fashion, Coolblue, Just Eat Takeaway.com,
 #                             Picnic, Otrium, Ahold Delhaize, Albert Heijn, Jumbo,
 #                             Nestlé Nederland, Magnum Ice Cream Company,
 #                             Adyen, TikTok, Amazon NL, Salesforce, Shopify,
 #                             HubSpot, Automattic, ABN AMRO, Van Lanschot Kempen,
-#                             Goldman Sachs Amsterdam, BNP Paribas Netherlands
+#                             Goldman Sachs Amsterdam, BNP Paribas Netherlands,
+#                             Bain & Company, Deloitte, KPMG, Capgemini (SF Career
+#                             Site Builder front-end, but client-side rendered),
+#                             Oliver Wyman (Phenom, but shares an unfilterable
+#                             multi-brand Marsh McLennan tenant)
 #   blocked (active bot protection, out of scope): Rabobank (WAF), Nestlé (Cloudflare
 #                             challenge), Magnum (403), Microsoft (reCAPTCHA on
 #                             jobs.careers.microsoft.com; the Eightfold-based
 #                             apply.careers.microsoft.com API also 403s with
 #                             "Not authorized for PCSX"), OpenAI (403), Shopify
 #                             (rate-limited, respected not bypassed), Goldman Sachs
-#                             (requires an authenticated Okta session)
+#                             (requires an authenticated Okta session), McKinsey
+#                             (every request hangs/resets, HTTP/2 and HTTP/1.1 both),
+#                             Kearney (403, Cloudflare)
 #
 # See README.md for the field schema per `ats` type, and how to add a new company.
 companies:
@@ -566,3 +572,66 @@ companies:
     category: "overheid"
     career_url: "https://www.uwv.nl/nl/werken-bij/vacatures"
     ats: "uwv"
+
+  # Consulting (checked 2026-08-24 -- none of the big consultancies were
+  # configured before this)
+  - name: "EY"
+    category: "consulting"
+    career_url: "https://careers.ey.com/ey/search/?locationsearch=Netherlands"
+    ats: "sap_successfactors"
+    successfactors_base_url: "https://careers.ey.com/ey"
+    note: "global list, confirmed locationsearch=Netherlands genuinely filters server-side (Rotterdam/Amsterdam results) but the scraper itself has no location param yet -- relies on downstream location scoring like several other SF companies here"
+  - name: "Roland Berger"
+    category: "consulting"
+    career_url: "https://www.rolandberger.com/en/Locations/Netherlands/Career/"
+    ats: "smartrecruiters"
+    smartrecruiters_company_id: "RolandBerger"
+    note: "global list (201 postings, 21 NL among them), same pattern as ASICS -- filtered downstream by the location scorer"
+  - name: "Accenture"
+    category: "consulting"
+    career_url: "https://www.accenture.com/nl-en/careers/jobsearch"
+    ats: "workday"
+    workday_host: "accenture.wd103.myworkdayjobs.com"
+    workday_site: "AccentureCareers"
+    note: "large global site (2000 postings), Netherlands confirmed present as a location facet value"
+  - name: "BCG"
+    category: "consulting"
+    career_url: "https://careers.bcg.com/global/en/locations/the-netherlands"
+    ats: "phenom"
+    phenom_base_url: "https://careers.bcg.com/global/en"
+    note: "confirmed live: keyword search already surfaces Amsterdam-specific postings directly (e.g. 'AI Tech Consultant (Blockchain) - Amsterdam | BCG Platinion')"
+  - name: "McKinsey"
+    category: "consulting"
+    career_url: "https://www.mckinsey.com/careers/search-jobs"
+    ats: "custom"
+    note: "actively blocks automated requests -- every request (curl, WebFetch, both HTTP/2 and HTTP/1.1) either hangs or resets the connection, consistent with active bot protection; respected, not evaded, same category as Rabobank"
+  - name: "Kearney"
+    category: "consulting"
+    career_url: "https://www.kearney.com/about/locations/netherlands/careers-events"
+    ats: "custom"
+    note: "HTTP 403 on automated requests (Cloudflare), active bot protection, checked 2026-08-24"
+  - name: "Bain & Company"
+    category: "consulting"
+    career_url: "https://www.bain.com/careers/"
+    ats: "custom"
+    note: "no recognizable ATS platform found in the raw HTML, checked 2026-08-24"
+  - name: "Deloitte"
+    category: "consulting"
+    career_url: "https://werkenbijdeloitte.nl/en/vacancies/"
+    ats: "custom"
+    note: "no recognizable ATS platform found in the raw HTML, checked 2026-08-24"
+  - name: "KPMG"
+    category: "consulting"
+    career_url: "https://www.werkenbijkpmg.nl/en/vacancies"
+    ats: "custom"
+    note: "no recognizable ATS platform found in the raw HTML, checked 2026-08-24"
+  - name: "Capgemini"
+    category: "consulting"
+    career_url: "https://jobs.capgemini.com/nl"
+    ats: "custom"
+    note: "front-end is a SAP SuccessFactors Career Site Builder (job2web) instance (performancemanager5.successfactors.eu, /platform/.../j2w/ assets), but unlike EY the /search endpoint returns 0 results and no search links exist in the raw HTML -- likely client-side rendered on top of SF here, needs more investigation before it can reuse successfactors_scraper.py, checked 2026-08-24"
+  - name: "Oliver Wyman"
+    category: "consulting"
+    career_url: "https://www.oliverwyman.com/nl/careers.html"
+    ats: "custom"
+    note: "Phenom-based, but on a shared Marsh McLennan tenant (careers.marsh.com) covering Marsh/Mercer/Guy Carpenter/Oliver Wyman together -- fetch_live_search returns real jobs but all brands mixed in (mostly Marsh insurance roles), couldn't find a working brand/category filter to isolate Oliver Wyman specifically, checked 2026-08-24"
