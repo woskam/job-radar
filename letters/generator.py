@@ -26,7 +26,18 @@ STYLE_GUIDE_TEMPLATE = """\
 - Slightly less "perfect" language is fine -- it should sound like {sender_name}, not like AI output.
 - Open with a claim for why he's the right candidate, followed by evidence from the projects.
 - Use 2-3 of the supplied projects, not all of them -- pick the ones that best match
-  the job posting, not the same ones by default."""
+  the job posting, not the same ones by default.
+- If the job posting names specific technologies/tools/platforms that aren't in the CV,
+  don't just ignore them: acknowledge the closest equivalent he does have and note in
+  one sentence that the transfer is straightforward. Silence on a named requirement reads
+  as not having read the posting.
+- If the posting emphasizes team collaboration, code review, or shared engineering
+  standards (as opposed to a solo/founder-style role), include at least one concrete
+  sentence about working *alongside* others as a peer/cross-functional collaborator --
+  don't let the letter read as 100% lone-builder when the role isn't. But don't reach
+  for team-management/leadership examples to make this point, even though he has them:
+  for an individual-contributor posting, "I managed a team" reads as overqualified, not
+  collaborative. Frame it as working with others, not leading them."""
 
 # Simple, dependency-free language detection instead of a library or an extra
 # Claude call -- job postings are almost always NL or EN, so a word list of
