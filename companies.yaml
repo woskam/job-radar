@@ -9,7 +9,10 @@
 #                             Samsung Benelux, Sony Benelux, NIBC Bank
 #   SAP SuccessFactors (7x) : adidas, Under Armour, MediaMarkt NL, C&A, Heineken,
 #                             Triodos Bank, Knab
-#   Radancy/TalentBrew (4x) : Action, IKEA Netherlands, ING, politie
+#   Radancy/TalentBrew (3x) : IKEA Netherlands, ING, politie
+#   Dropr (2x)              : Action, ICI Paris XL
+#   Google Careers (1x)     : Google (reverse-engineered internal Closure/WIZ
+#                             page-data format, not a documented API)
 #   SmartRecruiters (2x)    : ASICS, Wehkamp
 #   Eightfold AI (2x)       : Netflix, HSBC Netherlands
 #   Phenom (4x)             : eBay, ASN Bank, Mars Benelux, Procter & Gamble Benelux
@@ -31,17 +34,20 @@
 #   werkenvoornederland.nl (6x): AIVD, MIVD, Rijkswaterstaat, Belastingdienst, Douane, DUO
 #   UWV (1x)                : UWV
 #   custom-built site, own scraper (2x): Mollie, VodafoneZiggo
-#   custom/unknown, not yet built (24x): G-Star RAW, Scotch & Soda, Suitsupply,
-#                             WE Fashion, Coolblue, ICI Paris XL, Just Eat Takeaway.com,
+#   custom/unknown, not yet built (22x): G-Star RAW, Scotch & Soda, Suitsupply,
+#                             WE Fashion, Coolblue, Just Eat Takeaway.com,
 #                             Picnic, Otrium, Ahold Delhaize, Albert Heijn, Jumbo,
-#                             Nestlé Nederland, Magnum Ice Cream Company, Microsoft,
-#                             Adyen, TikTok, Amazon NL, Google, Salesforce, Shopify,
+#                             Nestlé Nederland, Magnum Ice Cream Company,
+#                             Adyen, TikTok, Amazon NL, Salesforce, Shopify,
 #                             HubSpot, Automattic, ABN AMRO, Van Lanschot Kempen,
 #                             Goldman Sachs Amsterdam, BNP Paribas Netherlands
 #   blocked (active bot protection, out of scope): Rabobank (WAF), Nestlé (Cloudflare
-#                             challenge), Magnum (403), Microsoft (reCAPTCHA),
-#                             OpenAI (403), Shopify (rate-limited, respected not bypassed),
-#                             Goldman Sachs (requires an authenticated Okta session)
+#                             challenge), Magnum (403), Microsoft (reCAPTCHA on
+#                             jobs.careers.microsoft.com; the Eightfold-based
+#                             apply.careers.microsoft.com API also 403s with
+#                             "Not authorized for PCSX"), OpenAI (403), Shopify
+#                             (rate-limited, respected not bypassed), Goldman Sachs
+#                             (requires an authenticated Okta session)
 #
 # See README.md for the field schema per `ats` type, and how to add a new company.
 companies:
@@ -178,13 +184,15 @@ companies:
   - name: "ICI Paris XL"
     category: "ecommerce"
     career_url: "https://www.werkenbijiciparisxl.nl/vacatures"
-    ats: "custom"
-    note: "front-end on Dropr CMS/CDN"
+    ats: "dropr"
+    dropr_base_url: "https://www.werkenbijiciparisxl.nl/vacatures"
+    note: "front-end on Dropr CMS/CDN -- same platform as Action, scrapers/dropr_scraper.py built 2026-08-24"
   - name: "Action"
     category: "ecommerce"
-    career_url: "https://www.action.jobs/"
-    ats: "radancy"
-    note: "site is currently 'Under Construction' (confirmed, cdn.radancy.eu), re-check later"
+    career_url: "https://nl.action.jobs/vacatures/kantoor"
+    ats: "dropr"
+    dropr_base_url: "https://nl.action.jobs/vacatures/kantoor"
+    note: "action.jobs (the old career_url) shows 'Under Construction'; nl.action.jobs is the real, live NL career site, on Dropr CMS (cdnv2.dropr.io) not Radancy as previously guessed -- fixed 2026-08-24. Scoped to the 'kantoor' (office) category, the relevant one for this profile -- winkels/distributiecentrum (stores/warehouse) also exist as separate category paths if ever needed"
   - name: "IKEA Netherlands"
     category: "ecommerce"
     career_url: "https://jobs.ikea.com/nl/"
@@ -352,8 +360,8 @@ companies:
   - name: "Google"
     category: "tech"
     career_url: "https://www.google.com/about/careers/applications/jobs/results/?location=Netherlands"
-    ats: "custom"
-    note: "own in-house Google framework (Closure/WIZ), no recognizable ATS platform, no data in the raw HTML; likely actively protected against scraping, check 2026-08-22"
+    ats: "google"
+    note: "own in-house Closure/WIZ framework -- the 2026-08-22 check was wrong, the job data IS server-rendered, just inside an AF_initDataCallback(...) block instead of a normal ATS API. ?location=Netherlands and ?q=<keyword> genuinely filter server-side (confirmed live). scrapers/google_scraper.py reverse-engineers this internal format (not a documented API, more fragile than the others here), built 2026-08-24"
   - name: "Salesforce"
     category: "tech"
     career_url: "https://www.salesforce.com/company/careers/jobs/"

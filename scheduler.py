@@ -15,8 +15,10 @@ from scrapers.ashby_scraper import fetch_live_search as fetch_ashby
 from scrapers.avature_scraper import fetch_live_search as fetch_avature
 from scrapers.brassring_scraper import fetch_live_search as fetch_brassring
 from scrapers.deel_scraper import fetch_live_search as fetch_deel
+from scrapers.dropr_scraper import fetch_live_search as fetch_dropr
 from scrapers.eightfold_scraper import fetch_live_search as fetch_eightfold
 from scrapers.getnoticed_scraper import fetch_live_search as fetch_getnoticed
+from scrapers.google_scraper import fetch_live_search as fetch_google
 from scrapers.greenhouse_scraper import fetch_live_search as fetch_greenhouse
 from scrapers.homerun_scraper import fetch_live_search as fetch_homerun
 from scrapers.jobylon_scraper import fetch_live_search as fetch_jobylon
@@ -129,6 +131,41 @@ def scrape_radancy_live(config: dict) -> list[dict]:
             jobs = _safe_fetch(
                 f"radancy:{company['name']}:{keyword}",
                 fetch_radancy, base_url=base_url, source=company["name"], keywords=keyword, location="Netherlands",
+            )
+            for job in jobs or []:
+                jobs_by_key[(job["source"], job["external_id"])] = job
+
+    return list(jobs_by_key.values())
+
+
+def scrape_dropr_live(config: dict) -> list[dict]:
+    jobs_by_key: dict[tuple[str, str], dict] = {}
+
+    for company in config["companies"]:
+        base_url = company.get("dropr_base_url")
+        if not base_url:
+            continue
+        for keyword in config["keywords"]:
+            jobs = _safe_fetch(
+                f"dropr:{company['name']}:{keyword}",
+                fetch_dropr, base_url=base_url, source=company["name"], keywords=keyword,
+            )
+            for job in jobs or []:
+                jobs_by_key[(job["source"], job["external_id"])] = job
+
+    return list(jobs_by_key.values())
+
+
+def scrape_google_live(config: dict) -> list[dict]:
+    jobs_by_key: dict[tuple[str, str], dict] = {}
+
+    for company in config["companies"]:
+        if company.get("ats") != "google":
+            continue
+        for keyword in config["keywords"]:
+            jobs = _safe_fetch(
+                f"google:{company['name']}:{keyword}",
+                fetch_google, source=company["name"], keywords=keyword, location="Netherlands",
             )
             for job in jobs or []:
                 jobs_by_key[(job["source"], job["external_id"])] = job
@@ -385,15 +422,18 @@ def scrape(scrape_live: bool, config: dict) -> list[dict]:
     if scrape_live:
         # Live scraping is only enabled for companies on platforms with a
         # public JSON/HTML search that needs no login/account (Workday, SAP
-        # SuccessFactors, Radancy/TalentBrew, SmartRecruiters, Oracle
-        # Recruiting Cloud, Eightfold, Avature, Phenom, GetNoticed, BrassRing,
-        # Deel, Greenhouse, Jobylon, Homerun, Recruitee). Company pages (still
+        # SuccessFactors, Radancy/TalentBrew, Dropr, Google Careers,
+        # SmartRecruiters, Oracle Recruiting Cloud, Eightfold, Avature,
+        # Phenom, GetNoticed, BrassRing, Deel, Greenhouse, Jobylon, Homerun,
+        # Recruitee). Company pages (still
         # synthetic fixtures), LinkedIn and Indeed stay off until those are
         # tested and approved separately (see CLAUDE.md's hard rules).
         return (
             scrape_workday_live(config)
             + scrape_successfactors_live(config)
             + scrape_radancy_live(config)
+            + scrape_dropr_live(config)
+            + scrape_google_live(config)
             + scrape_smartrecruiters_live(config)
             + scrape_oracle_live(config)
             + scrape_eightfold_live(config)
