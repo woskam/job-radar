@@ -42,8 +42,13 @@ STATUS_META = {
     "sent": {"label": "Sent", "bg": "oklch(0.95 0.05 145)", "fg": "oklch(0.45 0.1 145)"},
     "interview": {"label": "Interview", "bg": "oklch(0.95 0.04 300)", "fg": "oklch(0.45 0.1 300)"},
     "rejected": {"label": "Rejected", "bg": "#FAF3F2", "fg": "#8A5A55"},
+    # Not a real value of jobs.status (that stays 'rejected') -- a pseudo-status
+    # for filtering/browsing the subset of rejections where rejected_stage is
+    # 'applied' or 'interview' (the employer said no, not a self-reject).
+    "rejected_by_employer": {"label": "Rejected by employer", "bg": "#FAF3F2", "fg": "#8A5A55"},
 }
 DEFAULT_STATUS_META = {"label": "Unknown", "bg": "#F4F1EA", "fg": "#6E6A63"}
+REJECTED_BY_EMPLOYER_STAGES = ("applied", "interview")
 
 
 def _font_choice() -> dict:
@@ -74,6 +79,11 @@ def _sidebar_counts(conn: sqlite3.Connection) -> dict:
         "sent": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'sent'").fetchone()[0],
         "interview": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'interview'").fetchone()[0],
         "rejected": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'rejected'").fetchone()[0],
+        "rejected_by_employer": conn.execute(
+            f"SELECT COUNT(*) FROM jobs WHERE status = 'rejected' AND rejected_stage IN "
+            f"({','.join('?' for _ in REJECTED_BY_EMPLOYER_STAGES)})",
+            REJECTED_BY_EMPLOYER_STAGES,
+        ).fetchone()[0],
     }
 
 
@@ -106,7 +116,12 @@ def index():
     if location:
         where.append("location LIKE ?")
         params.append(f"%{location}%")
-    if status:
+    if status == "rejected_by_employer":
+        where.append(
+            f"status = 'rejected' AND rejected_stage IN ({','.join('?' for _ in REJECTED_BY_EMPLOYER_STAGES)})"
+        )
+        params.extend(REJECTED_BY_EMPLOYER_STAGES)
+    elif status:
         where.append("status = ?")
         params.append(status)
     if min_score:
@@ -134,6 +149,15 @@ def index():
             "SELECT DISTINCT status FROM jobs WHERE status != 'new' ORDER BY status"
         ).fetchall()
     ]
+    # Insert the employer-rejection pseudo-status right after the plain
+    # 'rejected' one it's a subset of, but only once such a row actually
+    # exists (same "only show what's observed" spirit as the query above).
+    if "rejected" in statuses and conn.execute(
+        f"SELECT 1 FROM jobs WHERE status = 'rejected' AND rejected_stage IN "
+        f"({','.join('?' for _ in REJECTED_BY_EMPLOYER_STAGES)}) LIMIT 1",
+        REJECTED_BY_EMPLOYER_STAGES,
+    ).fetchone():
+        statuses.insert(statuses.index("rejected") + 1, "rejected_by_employer")
     companies = [
         r["company"] for r in conn.execute(
             "SELECT DISTINCT company FROM jobs WHERE status != 'new' AND company IS NOT NULL ORDER BY company"

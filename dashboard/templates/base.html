@@ -104,6 +104,9 @@
         <a href="{{ url_for('index', status='rejected') }}" class="{{ 'active' if request.args.get('status') == 'rejected' else '' }}">
           <span>Rejected</span><span class="mono count">{{ sidebar_counts.rejected }}</span>
         </a>
+        <a href="{{ url_for('index', status='rejected_by_employer') }}" class="{{ 'active' if request.args.get('status') == 'rejected_by_employer' else '' }}">
+          <span>Rejected by employer</span><span class="mono count">{{ sidebar_counts.rejected_by_employer }}</span>
+        </a>
         <a href="{{ url_for('cv') }}" class="{{ 'active' if request.endpoint == 'cv' else '' }}">
           <span>CV</span>
         </a>
