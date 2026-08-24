@@ -347,6 +347,51 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         )
         return 5.2 + bullets_height + 1.2
 
+    def compact_entry_height(entry: dict) -> float:
+        pdf.set_font(font_family, "", 9)
+        return 5.2 + _wrapped_line_count(pdf, entry["description"], full_width) * 4.6 + 1.2
+
+    def project_height(project: dict) -> float:
+        pdf.set_font(font_family, "", 7.5)
+        tech_lines = _wrapped_line_count(pdf, project["tech"], full_width - PROJECT_INDENT)
+        pdf.set_font(font_family, "", 9)
+        desc_lines = _wrapped_line_count(pdf, project["description"], full_width - PROJECT_INDENT)
+        return tech_lines * 4.8 + desc_lines * 4.6 + 1.5
+
+    def row_height(row: dict) -> float:
+        pdf.set_font(font_family, "", 9)
+        return _wrapped_line_count(pdf, row["text"], full_width - label_width) * 4.6 + 1.0
+
+    # A short CV's content rarely lines up exactly with a full page, and a
+    # fixed, compact spacing (tuned to *guarantee* everything fits even for a
+    # longer version of this CV) leaves a big dead zone at the bottom for a
+    # shorter one -- exactly what was flagged as looking sparse compared to
+    # the reference PDF. Rather than hand-tune the constants above for
+    # whatever the CV happens to contain today (which just breaks again the
+    # next time a bullet's added or removed), measure the natural height of
+    # everything below the header once, compare it to the space actually
+    # available on the page, and spread the leftover evenly across the gaps
+    # between entries/projects/rows -- same idea as "justify", vertically.
+    label_width = 28
+    content_top_y = pdf.get_y()
+    natural_height = (
+        3 * (HEADING_ROW_HEIGHT + HEADING_GAP)
+        + sum(entry_height(e) for e in data["experience"])
+        + sum(compact_entry_height(e) for e in data.get("compact_experience", []))
+        + sum(project_height(p) for p in data["projects"])
+        + sum(row_height(r) for r in data["skills_table"])
+    )
+    gap_points = (
+        len(data["experience"]) + len(data.get("compact_experience", [])) + len(data["projects"])
+        + len(data["skills_table"])
+    )
+    available_height = (pdf.h - pdf.b_margin) - content_top_y
+    slack = available_height - natural_height
+    # 92% safety margin against the estimate being slightly optimistic (font
+    # metrics/wrapping approximations), capped so a very short CV doesn't end
+    # up with absurdly loose spacing instead of just... having a bit of air.
+    extra_gap = max(0.0, min(slack / gap_points * 0.92, 4.0)) if gap_points else 0.0
+
     # EXPERIENCE
     first_entry_height = entry_height(data["experience"][0]) if data["experience"] else 0
     section_heading(titles["experience"], next_height=first_entry_height)
@@ -355,7 +400,7 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         entry_line(entry["title"], entry["company"], entry["dates"])
         for bullet in entry["bullets"]:
             bullet_line(bullet)
-        pdf.ln(1.2)
+        pdf.ln(1.2 + extra_gap)
 
     for entry in data.get("compact_experience", []):
         pdf.set_font(font_family, "", 9)
@@ -365,14 +410,7 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         pdf.set_text_color(0, 0, 0)
         pdf_write_inline(pdf, entry["description"], font_family, 9, 4.6)
         pdf.ln(4.6)
-        pdf.ln(1.2)
-
-    def project_height(project: dict) -> float:
-        pdf.set_font(font_family, "", 7.5)
-        tech_lines = _wrapped_line_count(pdf, project["tech"], full_width - PROJECT_INDENT)
-        pdf.set_font(font_family, "", 9)
-        desc_lines = _wrapped_line_count(pdf, project["description"], full_width - PROJECT_INDENT)
-        return tech_lines * 4.8 + desc_lines * 4.6 + 1.5
+        pdf.ln(1.2 + extra_gap)
 
     # SELECTED PROJECTS
     suffix = data.get("projects_heading_suffix")
@@ -405,15 +443,9 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         pdf.set_draw_color(*ACCENT_RGB)
         pdf.set_line_width(0.7)
         pdf.line(base_margin + 0.5, y_start + 1, base_margin + 0.5, y_end - 1.5)
-        pdf.ln(1.5)
+        pdf.ln(1.5 + extra_gap)
 
     # SKILLS & EDUCATION
-    label_width = 28
-
-    def row_height(row: dict) -> float:
-        pdf.set_font(font_family, "", 9)
-        return _wrapped_line_count(pdf, row["text"], full_width - label_width) * 4.6 + 1.0
-
     first_row_height = row_height(data["skills_table"][0]) if data["skills_table"] else 0
     section_heading(titles["skills"], next_height=first_row_height)
     for row in data["skills_table"]:
@@ -431,6 +463,6 @@ def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
         pdf.set_text_color(0, 0, 0)
         pdf.multi_cell(0, 4.6, row["text"], align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_left_margin(base_margin)
-        pdf.ln(1.0)
+        pdf.ln(1.0 + extra_gap)
 
     return pdf
