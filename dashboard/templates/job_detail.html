@@ -191,6 +191,11 @@
             {{ "Regenerate interview prep" if interview_prep else "Generate interview prep" }}
           </button>
         </form>
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}" style="margin-top:8px;">
+          <input type="hidden" name="status" value="rejected">
+          <input type="text" name="reason" placeholder="reason (optional)" class="reason-input">
+          <button type="submit" class="btn btn-danger btn-full" style="margin-top:8px;">Rejected by employer</button>
+        </form>
         {% elif job['status'] != 'sent' %}
         <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}">
           <input type="hidden" name="status" value="sent">

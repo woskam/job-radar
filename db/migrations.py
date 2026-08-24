@@ -5,7 +5,7 @@ import sqlite3
 # pragma table_info() ourselves before adding a column.
 NEW_JOB_COLUMNS = {
     "rejected_at": "TIMESTAMP",
-    "rejected_stage": "TEXT",  # scoring / approval / review (relevance_check: historical, no longer actively written)
+    "rejected_stage": "TEXT",  # scoring / approval / review (relevance_check: historical, no longer actively written) / applied / interview
     "rejected_reason": "TEXT",
     "telegram_message_id": "INTEGER",
     "sent_at": "TIMESTAMP",

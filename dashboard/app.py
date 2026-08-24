@@ -209,34 +209,45 @@ def _match_reasons(job: dict) -> list[dict]:
     ]
 
 
-def _timeline(job: dict, letter: sqlite3.Row | None) -> list[dict]:
-    if job["status"] == "rejected":
-        human_reviewed = job["rejected_stage"] in ("approval", "review")
-        step1 = {
+def _timeline(job: dict, letter: sqlite3.Row | None, interview_prep: sqlite3.Row | None) -> list[dict]:
+    # Three fixed progress steps regardless of outcome, so a rejection at any
+    # point in the funnel (self-rejected before sending, or the employer
+    # saying no after applying or after an interview) is visually distinct --
+    # each reached-state is derived from data that survives a later status
+    # overwrite to 'rejected' (letter/sent_at/interview_prep rows don't get
+    # deleted, unlike job['status'] itself).
+    reviewed_reached = letter is not None
+    sent_reached = bool(job["sent_at"])
+    interview_reached = (
+        interview_prep is not None or job["status"] == "interview" or job["rejected_stage"] == "interview"
+    )
+
+    steps = [
+        {
             "label": "Reviewed",
-            "reached": human_reviewed,
-            "submeta": (letter["generated_at"] if letter else None) or ("not yet" if not human_reviewed else "-"),
-        }
-        step2 = {
+            "reached": reviewed_reached,
+            "submeta": (letter["generated_at"] if letter else None) or "not yet",
+        },
+        {
+            "label": "Sent",
+            "reached": sent_reached,
+            "submeta": job["sent_at"] or "not yet",
+        },
+        {
+            "label": "Interview",
+            "reached": interview_reached,
+            "submeta": (interview_prep["generated_at"] if interview_prep else None)
+            or ("not yet" if not interview_reached else "-"),
+        },
+    ]
+    if job["status"] == "rejected":
+        steps.append({
             "label": "Rejected",
             "reached": True,
             "submeta": job["rejected_reason"] or "no reason given",
             "danger": True,
-        }
-    else:
-        step1_reached = job["status"] in ("letter_drafted", "reviewed", "sent")
-        step1 = {
-            "label": "Reviewed",
-            "reached": step1_reached,
-            "submeta": (letter["generated_at"] if letter else None) or ("not yet" if not step1_reached else "-"),
-        }
-        step2 = {
-            "label": "Sent",
-            "reached": job["status"] == "sent",
-            "submeta": job["sent_at"] or "not yet",
-            "danger": False,
-        }
-    return [step1, step2]
+        })
+    return steps
 
 
 @app.route("/job/<int:job_id>")
@@ -262,7 +273,7 @@ def job_detail(job_id):
         status_meta=status_meta,
         sidebar_counts=sidebar_counts,
         match_reasons=_match_reasons(dict(job)),
-        timeline=_timeline(job, letter),
+        timeline=_timeline(job, letter, interview_prep),
         font_options=FONT_OPTIONS,
         selected_font=request.args.get("font", DEFAULT_FONT),
         all_projects=load_projects(),
@@ -453,6 +464,14 @@ def download_pdf(job_id):
     )
 
 
+# Which rejected_stage a reject click maps to, based on the job's status right
+# before the reject -- pending_approval/sent/interview are explicit funnel
+# points, anything else (letter_drafted/reviewed) falls back to "review" like
+# before. "applied"/"interview" are the employer saying no post-send, as
+# opposed to "approval"/"review" which are Wychert deciding not to pursue it.
+REJECT_STAGE_BY_STATUS = {"pending_approval": "approval", "sent": "applied", "interview": "interview"}
+
+
 @app.route("/job/<int:job_id>/status", methods=["POST"])
 def update_status(job_id):
     # Only updates the status in the database. Doesn't send/post anything --
@@ -463,7 +482,7 @@ def update_status(job_id):
     conn = get_db()
     if new_status == "rejected":
         current = conn.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()
-        stage = "approval" if current and current["status"] == "pending_approval" else "review"
+        stage = REJECT_STAGE_BY_STATUS.get(current["status"] if current else None, "review")
         reason = request.form.get("reason", "").strip() or "Rejected via dashboard"
         conn.execute(
             "UPDATE jobs SET status = ?, rejected_at = CURRENT_TIMESTAMP, "
