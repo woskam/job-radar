@@ -15,12 +15,19 @@ def parse_search_results(data: dict, host: str, site: str, source: str) -> list[
         bullet_fields = posting.get("bulletFields") or []
         external_id = bullet_fields[0] if bullet_fields else external_path
 
+        # Not every tenant populates locationsText (Accenture: always null) --
+        # those tenants instead put it as the second bulletFields entry
+        # (the first being the requisition id), e.g. ["R00325340", "Gurugram"]
+        # or ["ATCI-5479554-S1999860", "Bengaluru"]. Only used as a fallback,
+        # so tenants where locationsText already works are unaffected.
+        location = posting.get("locationsText") or (bullet_fields[1] if len(bullet_fields) > 1 else None)
+
         jobs.append({
             "source": source,
             "external_id": external_id,
             "title": posting.get("title"),
             "company": source,
-            "location": posting.get("locationsText"),
+            "location": location,
             # No /en-US/ segment -- that's purely the Workday site language, not
             # the job's own country (Philips' "jobs-and-careers" tenant is e.g.
             # worldwide, with Eindhoven among them); without that misleading
