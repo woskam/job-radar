@@ -4,7 +4,7 @@ An automated job-vacancy monitor and cover-letter drafting assistant, designed t
 
 ## What it does
 
-- Scrapes job postings from ~90 pre-configured companies (`companies.yaml`) on a schedule, using each company's actual careers-site API rather than a generic browser-based crawler.
+- Scrapes job postings from 100+ pre-configured companies (`companies.yaml`) on a schedule, using each company's actual careers-site API rather than a generic browser-based crawler.
 - Scores every posting against your own keywords, location preferences and exclusions (`profile.yaml`, kept out of version control).
 - Sends you a Telegram message with **Approve**/**Reject** buttons for every match above your threshold -- nothing costs an API call until you say yes.
 - On approval, generates a personalized cover-letter draft (Claude API) from your CV and project history, detects the job posting's language, and writes the letter (and picks your CV) in that language.
@@ -118,3 +118,11 @@ Most `ats` values were found by fetching the company's careers page and looking 
 - **Nothing is ever sent automatically.** The letter generator only ever produces a draft; you mark it `sent` yourself, by hand, in the dashboard.
 - **`DRY_RUN=true`** mocks the Claude API call and Telegram sends with placeholder text, so you can develop and test without incurring costs or noise on your phone.
 - Never commit `.env`, `profile.yaml`, your CV (`cv.txt`/`cv_nl.txt`/`cv_short.yaml`/`cv_short_nl.yaml`), or `letters/projects.json` -- see `.gitignore`.
+
+## Contributing
+
+See `CONTRIBUTING.md` -- the short version: run `python add_company.py <career-page-url>` to add a company, most other files are personal/gitignored and shouldn't need a PR.
+
+## License
+
+MIT -- see `LICENSE`.
