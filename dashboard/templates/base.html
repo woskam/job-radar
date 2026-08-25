@@ -92,6 +92,9 @@
         <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' and not request.args.get('status') else '' }}">
           <span>Jobs</span><span class="mono count">{{ sidebar_counts.total }}</span>
         </a>
+        <a href="{{ url_for('index', status='pending_approval') }}" class="{{ 'active' if request.args.get('status') == 'pending_approval' else '' }}">
+          <span>Needs review</span><span class="mono count">{{ sidebar_counts.pending_approval }}</span>
+        </a>
         <a href="{{ url_for('index', status='letter_drafted') }}" class="{{ 'active' if request.args.get('status') == 'letter_drafted' else '' }}">
           <span>Draft letters</span><span class="mono count">{{ sidebar_counts.letter_drafted }}</span>
         </a>

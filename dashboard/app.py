@@ -65,6 +65,36 @@ def status_meta(status: str) -> dict:
     return STATUS_META.get(status, DEFAULT_STATUS_META)
 
 
+REMOTE_PREFIX_RE = re.compile(r"(?i)^remote[,\s]+(.+)")
+
+
+def _normalize_city(location: str) -> str:
+    # Different platforms format the same city wildly differently -- EY's
+    # SuccessFactors appends "NL, 1083 HP", Workday sometimes adds a state/
+    # province, Radancy tacks on "+7 more..." for ambiguous multi-location
+    # postings -- but the city name itself is consistently the first
+    # comma-separated segment across every platform seen in this project.
+    # Used only for the location filter's suggestion list: the underlying
+    # filter is still a substring match against the raw location, so
+    # picking the clean "Amsterdam" suggestion correctly matches every
+    # differently-formatted Amsterdam variant, not just one exact string.
+    location = location.strip()
+
+    # Remote-first postings (GitLab confirmed live: "Remote, Netherlands",
+    # "Remote Ireland") flip this -- the informative part is the
+    # country/region *after* "Remote", not the word "Remote" itself. Taking
+    # the first comma segment there would collapse every remote posting from
+    # every country into one meaningless "Remote" bucket.
+    remote_match = REMOTE_PREFIX_RE.match(location)
+    if remote_match:
+        location = remote_match.group(1)
+
+    # Postings with multiple locations use ";" as a secondary separator
+    # (e.g. "Remote, Canada; Remote, United Kingdom") -- keep just the first.
+    location = location.split(";")[0].strip()
+    return location.split(",")[0].strip()
+
+
 def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -75,6 +105,7 @@ def get_db() -> sqlite3.Connection:
 def _sidebar_counts(conn: sqlite3.Connection) -> dict:
     return {
         "total": conn.execute("SELECT COUNT(*) FROM jobs WHERE status != 'new'").fetchone()[0],
+        "pending_approval": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'pending_approval'").fetchone()[0],
         "letter_drafted": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'letter_drafted'").fetchone()[0],
         "sent": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'sent'").fetchone()[0],
         "interview": conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'interview'").fetchone()[0],
@@ -163,11 +194,20 @@ def index():
             "SELECT DISTINCT company FROM jobs WHERE status != 'new' AND company IS NOT NULL ORDER BY company"
         ).fetchall()
     ]
-    locations = [
+    # Scoped to the currently selected company (if any) -- so picking a
+    # company narrows the location suggestions to ones that actually occur
+    # for it, instead of every location across the whole database.
+    location_where = "status != 'new' AND location IS NOT NULL"
+    location_params: list = []
+    if company:
+        location_where += " AND company = ?"
+        location_params.append(company)
+    raw_locations = [
         r["location"] for r in conn.execute(
-            "SELECT DISTINCT location FROM jobs WHERE status != 'new' AND location IS NOT NULL ORDER BY location"
+            f"SELECT DISTINCT location FROM jobs WHERE {location_where}", location_params
         ).fetchall()
     ]
+    locations = sorted({_normalize_city(l) for l in raw_locations if l})
     kpis = {
         "strong_matches": conn.execute(
             "SELECT COUNT(*) FROM jobs WHERE relevance_score >= ?", (STRONG_MATCH_THRESHOLD,)
