@@ -61,6 +61,27 @@ def _is_foreign_location(location_raw: str, location_lower: str, loc_cfg: dict) 
     return is_foreign and not is_netherlands
 
 
+def _load_profile_yaml(path: Path) -> dict:
+    # profile.yaml is gitignored, so it's the single most common first
+    # mistake a new user following the README makes -- a bare
+    # FileNotFoundError here gives no hint what to do about it.
+    try:
+        with open(path) as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        def _display(p: Path) -> str:
+            try:
+                return str(p.relative_to(ROOT))
+            except ValueError:
+                return str(p)
+
+        raise FileNotFoundError(
+            f"{path} not found -- copy the template first: "
+            f"cp {_display(ROOT / 'profile.example.yaml')} {_display(path)} "
+            f"(or run setup_wizard.py)"
+        ) from None
+
+
 def load_config(companies_path: Path = COMPANIES_PATH, profile_path: Path = PROFILE_PATH) -> dict:
     """
     Loads and merges companies.yaml (the shareable ATS/company database) and
@@ -71,8 +92,7 @@ def load_config(companies_path: Path = COMPANIES_PATH, profile_path: Path = PROF
     """
     with open(companies_path) as f:
         companies = yaml.safe_load(f)
-    with open(profile_path) as f:
-        profile = yaml.safe_load(f)
+    profile = _load_profile_yaml(profile_path)
 
     return {**companies, **profile}
 
@@ -80,8 +100,7 @@ def load_config(companies_path: Path = COMPANIES_PATH, profile_path: Path = PROF
 def load_profile(profile_path: Path = PROFILE_PATH) -> dict:
     """Loads just profile.yaml -- used for the `sender` details (name/address/
     email/url) shown on the letterhead of downloaded cover letters."""
-    with open(profile_path) as f:
-        return yaml.safe_load(f)
+    return _load_profile_yaml(profile_path)
 
 
 def score_breakdown(job: dict, config: dict) -> dict:

@@ -18,7 +18,9 @@ An automated job-vacancy monitor and cover-letter drafting assistant, designed t
 job-radar/
 ├── companies.yaml            # shareable database of companies + their ATS platform config
 ├── profile.example.yaml      # template -- copy to profile.yaml (gitignored) and fill in your own
-├── .env.example              # template -- copy to .env (gitignored) and fill in your API keys
+├── .env.example               # template -- copy to .env (gitignored) and fill in your API keys
+├── setup_wizard.py            # interactive first-time setup: .env, profile.yaml, CV/projects
+├── add_company.py             # point it at a career page, it detects the ATS and tests it live
 ├── scheduler.py              # slow cycle (every few hours): scrape -> score -> send approval requests
 ├── approval_worker.py        # fast cycle (~90s): process Telegram replies -> generate + send letters
 ├── scrapers/                 # one small module per ATS platform (Workday, Greenhouse, Ashby, ...)
@@ -47,6 +49,13 @@ job-radar/
 
 ## Setup
 
+**Quick path:** after step 1 below, run `python setup_wizard.py` -- it walks
+you through `.env`, `profile.yaml`, and your CV/projects interactively
+(including validating your API keys live, and optionally having Claude turn
+pasted raw CV text into the right format), instead of the manual copy+edit
+steps below. The steps below are what it does under the hood, and how to do
+each one by hand if you'd rather.
+
 1. `python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt`
 2. `cp .env.example .env` and fill in `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. Leave `DRY_RUN=true` and `SCRAPE_LIVE=false` for now.
 3. `cp profile.example.yaml profile.yaml` and edit your keywords, location, scoring preferences and sender details.
@@ -70,13 +79,21 @@ Edit `profile.yaml`'s `keywords` list. Add `keyword_weights` for any keyword tha
 
 ## Adding a new company
 
-Add an entry to `companies.yaml`'s `companies:` list. The `ats` field determines which scraper module gets reused, and which extra fields that company's entry needs:
+**Quick path:** `python add_company.py <career-page-url>` -- it checks the
+page against every ATS platform already supported below, and if it
+recognizes one, live-tests it and offers to append a working entry to
+`companies.yaml` for you. See `CONTRIBUTING.md` for what to do if it doesn't
+recognize the platform.
+
+By hand: add an entry to `companies.yaml`'s `companies:` list. The `ats` field determines which scraper module gets reused, and which extra fields that company's entry needs:
 
 | `ats` value | Extra fields needed | Scraper module |
 |---|---|---|
 | `workday` | `workday_host`, `workday_site` | `scrapers/workday_scraper.py` |
 | `sap_successfactors` | `successfactors_base_url` | `scrapers/successfactors_scraper.py` |
-| `radancy` | `radancy_base_url` | `scrapers/radancy_scraper.py` |
+| `radancy` | `radancy_base_url` (+ optional `radancy_path` for a tenant-specific pre-filtered location page) | `scrapers/radancy_scraper.py` |
+| `dropr` | `dropr_base_url` | `scrapers/dropr_scraper.py` |
+| `google` | -- (fixed endpoint, reverse-engineered internal format) | `scrapers/google_scraper.py` |
 | `smartrecruiters` | `smartrecruiters_company_id` | `scrapers/smartrecruiters_scraper.py` |
 | `eightfold` | `eightfold_base_url`, `eightfold_domain` | `scrapers/eightfold_scraper.py` |
 | `phenom` | `phenom_base_url` | `scrapers/phenom_scraper.py` |
