@@ -10,6 +10,8 @@ An automated job-vacancy monitor and cover-letter drafting assistant, designed t
 - On approval, generates a personalized cover-letter draft (Claude API) from your CV and project history, detects the job posting's language, and writes the letter (and picks your CV) in that language.
 - Sends the finished draft back to you on Telegram, and keeps a local dashboard where you can review, edit, and download it as `.docx`/`.pdf` (with a letterhead) -- in three font choices.
 - The same dashboard also generates a downloadable CV -- a full-length version and a condensed one-page version, both with the same letterhead/font choices, in English and (optionally) Dutch.
+- Once you get invited to interview, generate an AI-assisted interview prep briefing (likely questions with talking points, questions to ask back, an honest gap to prepare for) from the same CV/project/job-posting context -- a personal reference doc, not something sent to anyone.
+- Tracks outcomes past "sent" too -- rejected before applying, rejected by the employer after applying, or after an interview -- so you can see where in the funnel things are actually falling off, not just how many letters went out.
 - **Nothing is ever sent automatically.** A letter sits in `letter_drafted` status until you mark it `sent` yourself, by hand, in the dashboard.
 
 ## Architecture
@@ -28,6 +30,8 @@ job-radar/
 │   └── scorer.py             # keyword/location scoring, loads + merges companies.yaml + profile.yaml
 ├── letters/
 │   ├── generator.py          # builds the Claude prompt, detects language, generates the draft
+│   ├── description_fetcher.py # fetches the full job posting text (per-ATS where possible) once a job is approved
+│   ├── interview_prep.py      # generates an interview prep briefing once a job is marked 'interview'
 │   ├── document_style.py     # shared letterhead (header/footer/fonts) for every downloadable document
 │   ├── cv_builder.py         # renders cv.txt into a letterhead-styled .docx/.pdf
 │   ├── cv_short_builder.py   # renders cv_short.yaml into a one-page .docx/.pdf resume
