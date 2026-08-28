@@ -55,9 +55,18 @@ def _font_choice() -> dict:
     return FONT_OPTIONS.get(request.args.get("font", DEFAULT_FONT), FONT_OPTIONS[DEFAULT_FONT])
 
 
+_INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]+')
+
+
+def _clean_filename_part(text: str) -> str:
+    cleaned = _INVALID_FILENAME_CHARS.sub(" ", text)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
 def _letter_filename(job: dict, extension: str) -> str:
-    raw = f"cover_letter_{job['company']}_{job['title']}"
-    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("_")[:120]
+    company = _clean_filename_part(job["company"])
+    title = _clean_filename_part(job["title"])
+    safe = f"Cover Letter - {company} - {title}"[:120].strip()
     return f"{safe}.{extension}"
 
 
@@ -569,9 +578,9 @@ def update_status(job_id):
 
 
 def _cv_filename(extension: str, variant: str) -> str:
-    name = SENDER["name"].replace(" ", "_")
-    suffix = "_short" if variant == "short" else ""
-    return f"CV_{name}{suffix}.{extension}"
+    name = _clean_filename_part(SENDER["name"])
+    suffix = " (Short)" if variant == "short" else ""
+    return f"CV - {name}{suffix}.{extension}"
 
 
 @app.route("/cv")
