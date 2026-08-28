@@ -559,6 +559,12 @@ def update_status(job_id):
         conn.execute("UPDATE jobs SET status = ? WHERE id = ?", (new_status, job_id))
     conn.commit()
     conn.close()
+    # Inline status changes from the jobs list (index.html) carry the current
+    # filters/page along as a raw query string so the redirect lands back on
+    # the same filtered view instead of resetting to an unfiltered page 1.
+    return_qs = request.form.get("return_qs", "").strip()
+    if return_qs:
+        return redirect(f"{url_for('index')}?{return_qs}")
     return redirect(url_for("index"))
 
 

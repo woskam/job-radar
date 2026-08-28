@@ -13,7 +13,7 @@
   .kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin-top: 6px; }
 
   .list-card { overflow: hidden; }
-  .job-grid-cols { display: grid; grid-template-columns: minmax(0,2.4fr) minmax(0,1.3fr) minmax(0,1.2fr) 120px 150px; gap: 16px; }
+  .job-grid-cols { display: grid; grid-template-columns: minmax(0,2.4fr) minmax(0,1.3fr) minmax(0,1.2fr) 120px minmax(0,1.6fr); gap: 16px; }
   .list-head {
     padding: 12px 20px; border-bottom: 1px solid var(--divider-2); background: var(--surface-subtle);
     align-items: start;
@@ -29,18 +29,37 @@
   .list-head .filter-submit { margin-top: 6px; padding: 6px 10px; font-size: 12px; }
 
   .job-row {
-    padding: 15px 20px; border-bottom: 1px solid var(--divider); align-items: center; cursor: pointer;
+    padding: 15px 20px; border-bottom: 1px solid var(--divider); align-items: center;
     transition: background 120ms ease;
   }
-  .job-row:hover { background: var(--surface-subtle); color: inherit; }
-  .job-title { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; color: var(--text); }
+  .job-row:hover { background: var(--surface-subtle); }
+  .job-row-link { cursor: pointer; }
+  .job-title {
+    font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .job-ref { font-size: 12px; color: var(--muted-2); margin-top: 3px; }
-  .job-company { font-size: 13.5px; color: var(--text-body); }
+  .job-company, .job-location {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 13.5px; color: var(--text-body);
+  }
   .job-location { font-size: 13px; color: var(--muted); }
   .match-cell { display: flex; align-items: center; gap: 9px; }
   .match-track { flex: 1; height: 5px; border-radius: 99px; background: var(--track); overflow: hidden; }
   .match-fill { height: 100%; border-radius: 99px; }
   .match-score { font-size: 12.5px; color: var(--text-body); }
+
+  .status-form { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .status-form-row { display: flex; align-items: center; gap: 5px; }
+  .status-form-current {
+    flex: 0 0 92px; width: 92px; box-sizing: border-box; text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .status-form select, .status-form input[type=text] {
+    min-width: 0; flex: 1 1 auto; width: 100%; padding: 5px 7px; border-radius: 7px;
+    border: 1px solid var(--border-input); background: #fff; font-size: 12px; color: var(--text-body);
+  }
+  .status-form button { flex: 0 0 auto; padding: 5px 9px; font-size: 12px; }
   .list-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; }
   .list-footer .page-info { font-size: 12.5px; color: var(--muted-2); }
   .pagination-links { display: flex; gap: 8px; }
@@ -82,8 +101,8 @@
     </div>
   </div>
 
-  <form method="get" action="{{ url_for('index') }}">
-    <div class="card list-card">
+  <div class="card list-card">
+    <form method="get" action="{{ url_for('index') }}">
       <div class="job-grid-cols list-head">
         <div>
           <span class="col-label">Title</span>
@@ -127,26 +146,43 @@
           </select>
         </div>
       </div>
-      {% for job in jobs %}
-      {% set score = job['relevance_score'] or 0 %}
-      {% set meta = status_meta(job['status']) %}
-      <a href="{{ url_for('job_detail', job_id=job['id']) }}" target="_blank" class="job-grid-cols job-row" style="display:grid; text-decoration:none;">
-        <div style="min-width:0;">
-          <div class="job-title">{{ job['title'] }}</div>
-          <div class="job-ref mono">REF-{{ job['id'] }}</div>
-        </div>
-        <div class="job-company">{{ job['company'] }}</div>
-        <div class="job-location">{{ job['location'] or '—' }}</div>
-        <div class="match-cell">
-          <div class="match-track">
-            <div class="match-fill" style="width:{{ (score * 100) | round(0, 'floor') }}%; background:{{ 'var(--accent-bar)' if score >= strong_match_threshold else 'var(--neutral-bar)' }};"></div>
+    </form>
+    {% for job in jobs %}
+    {% set score = job['relevance_score'] or 0 %}
+    {% set meta = status_meta(job['status']) %}
+      <div class="job-grid-cols job-row" style="display:grid;">
+        <a href="{{ url_for('job_detail', job_id=job['id']) }}" target="_blank" class="job-row-link" style="display:contents; text-decoration:none; color:inherit;">
+          <div style="min-width:0;">
+            <div class="job-title">{{ job['title'] }}</div>
+            <div class="job-ref mono">REF-{{ job['id'] }}</div>
           </div>
-          <span class="match-score mono">{{ '%.2f' | format(score) }}</span>
-        </div>
-        <div>
-          <span class="pill" style="background:{{ meta.bg }}; color:{{ meta.fg }};">{{ meta.label }}</span>
-        </div>
-      </a>
+          <div class="job-company">{{ job['company'] }}</div>
+          <div class="job-location">{{ job['location'] or '—' }}</div>
+          <div class="match-cell">
+            <div class="match-track">
+              <div class="match-fill" style="width:{{ (score * 100) | round(0, 'floor') }}%; background:{{ 'var(--accent-bar)' if score >= strong_match_threshold else 'var(--neutral-bar)' }};"></div>
+            </div>
+            <span class="match-score mono">{{ '%.2f' | format(score) }}</span>
+          </div>
+        </a>
+        <form method="post" action="{{ url_for('update_status', job_id=job['id']) }}" class="status-form">
+          <input type="hidden" name="return_qs" value="{{ request.query_string.decode() }}">
+          <div class="status-form-row">
+            <span class="pill status-form-current" style="background:{{ meta.bg }}; color:{{ meta.fg }};">{{ meta.label }}</span>
+            <select name="status">
+              <option value="" disabled selected>change to...</option>
+              <option value="approved">Approve</option>
+              <option value="sent">Sent</option>
+              <option value="interview">Interview</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="status-form-row">
+            <input type="text" name="reason" placeholder="reason (if rejecting)">
+            <button type="submit" class="btn">Save</button>
+          </div>
+        </form>
+      </div>
       {% else %}
       <div class="empty-row">No jobs found for these filters. <a href="{{ url_for('index') }}">Clear filters</a></div>
       {% endfor %}
@@ -165,5 +201,4 @@
         {% endif %}
       </div>
     </div>
-  </form>
 {% endblock %}
