@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import re
 import sqlite3
@@ -12,7 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 from db.migrations import ensure_columns
 from letters.cv_builder import build_cv_docx, build_cv_pdf
-from letters.cv_short_builder import CV_SHORT_PATH_NL, build_short_cv_docx, build_short_cv_pdf
+from letters.cv_short_builder import CV_SHORT_PATH_NL, build_short_cv_docx, build_short_cv_pdf, load_short_cv_data
+from letters.cv_tailor import generate_cv_variant, save_cv_variant
 from letters.document_style import DEFAULT_FONT, FONT_OPTIONS, SENDER
 from letters.generator import (
     CV_PATH_NL,
@@ -67,6 +69,13 @@ def _letter_filename(job: dict, extension: str) -> str:
     company = _clean_filename_part(job["company"])
     title = _clean_filename_part(job["title"])
     safe = f"Cover Letter - {company} - {title}"[:120].strip()
+    return f"{safe}.{extension}"
+
+
+def _job_cv_filename(job: dict, extension: str) -> str:
+    company = _clean_filename_part(job["company"])
+    title = _clean_filename_part(job["title"])
+    safe = f"CV - {company} - {title}"[:120].strip()
     return f"{safe}.{extension}"
 
 
@@ -333,16 +342,28 @@ def job_detail(job_id):
     interview_prep = conn.execute(
         "SELECT * FROM interview_preps WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
     ).fetchone()
+    cv_variant_row = conn.execute(
+        "SELECT * FROM cv_variants WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
     sidebar_counts = _sidebar_counts(conn)
     conn.close()
+    cv_variant = None
+    if cv_variant_row:
+        cv_variant = {
+            "data": json.loads(cv_variant_row["data"]),
+            "missing_terms": json.loads(cv_variant_row["missing_terms"] or "[]"),
+            "generated_at": cv_variant_row["generated_at"],
+        }
     return render_template(
         "job_detail.html",
         job=job,
         letter=letter,
         interview_prep=interview_prep,
+        cv_variant=cv_variant,
         saved=request.args.get("saved"),
         regenerated=request.args.get("regenerated"),
         prep_generated=request.args.get("prep_generated"),
+        cv_regenerated=request.args.get("cv_regenerated"),
         status_meta=status_meta,
         sidebar_counts=sidebar_counts,
         match_reasons=_match_reasons(dict(job)),
@@ -439,6 +460,76 @@ def interview_prep(job_id):
     save_interview_prep(conn, job_id, content)
     conn.close()
     return redirect(url_for("job_detail", job_id=job_id, prep_generated=1))
+
+
+@app.route("/job/<int:job_id>/regenerate_cv", methods=["POST"])
+def regenerate_cv(job_id):
+    conn = get_db()
+    job = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    letter = conn.execute(
+        "SELECT * FROM letters WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
+    conn.close()
+
+    language = (letter["language"] if letter else None) or detect_language(job["description"] or job["title"] or "")
+    cv_data = load_short_cv_data(language)
+    variant_data, missing_terms = generate_cv_variant(dict(job), cv_data, language, DRY_RUN)
+
+    conn = get_db()
+    save_cv_variant(conn, job_id, variant_data, missing_terms, language)
+    conn.close()
+    return redirect(url_for("job_detail", job_id=job_id, cv_regenerated=1))
+
+
+@app.route("/job/<int:job_id>/cv_download.docx")
+def job_cv_download_docx(job_id):
+    conn = get_db()
+    job = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    cv_variant = conn.execute(
+        "SELECT * FROM cv_variants WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
+    conn.close()
+    if not cv_variant:
+        return "no CV variant for this job", 404
+
+    font = _font_choice()
+    doc = build_short_cv_docx(
+        language=cv_variant["language"], font_name=font["docx"], data=json.loads(cv_variant["data"])
+    )
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=_job_cv_filename(dict(job), "docx"),
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+
+
+@app.route("/job/<int:job_id>/cv_download.pdf")
+def job_cv_download_pdf(job_id):
+    conn = get_db()
+    job = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    cv_variant = conn.execute(
+        "SELECT * FROM cv_variants WHERE job_id = ? ORDER BY id DESC LIMIT 1", (job_id,)
+    ).fetchone()
+    conn.close()
+    if not cv_variant:
+        return "no CV variant for this job", 404
+
+    font = _font_choice()
+    pdf = build_short_cv_pdf(
+        language=cv_variant["language"], font_family=font["pdf"], data=json.loads(cv_variant["data"])
+    )
+    buf = io.BytesIO(bytes(pdf.output()))
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=_job_cv_filename(dict(job), "pdf"),
+        mimetype="application/pdf",
+    )
 
 
 @app.route("/job/<int:job_id>/download.docx")

@@ -27,6 +27,20 @@ NEW_TABLES = {
             generated_at TIMESTAMP
         )
     """,
+    # One row per generated per-job CV variant (never overwritten, same
+    # history-preserving pattern as `letters`/`interview_preps`) -- see
+    # letters/cv_tailor.py. `data` is the full merged cv_short_data dict,
+    # JSON-serialized; `missing_terms` is a JSON-serialized list[str].
+    "cv_variants": """
+        CREATE TABLE IF NOT EXISTS cv_variants (
+            id INTEGER PRIMARY KEY,
+            job_id INTEGER REFERENCES jobs(id),
+            language TEXT,
+            data TEXT,
+            missing_terms TEXT,
+            generated_at TIMESTAMP
+        )
+    """,
 }
 
 

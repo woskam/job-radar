@@ -2,6 +2,8 @@ import os
 
 from dotenv import load_dotenv
 
+from letters.cv_short_builder import load_short_cv_data
+from letters.cv_tailor import generate_cv_variant, save_cv_variant
 from letters.description_fetcher import fetch_description
 from letters.generator import detect_language, generate_letter, load_cv, load_projects, save_letter
 from matching.scorer import load_config
@@ -51,6 +53,17 @@ def run_approvals(dry_run: bool) -> dict:
         draft = generate_letter(job, cv_text=cv_text, projects=projects, dry_run=dry_run, language=language)
         save_letter(conn, job["id"], draft, language=language)
         drafted_ids.append(job["id"])
+
+        # A tailored CV alongside the letter -- best-effort: a broken/missing
+        # cv_short.yaml or a malformed LLM response must never take down the
+        # letter flow or the rest of this batch, same spirit as
+        # scheduler.py's _safe_fetch.
+        try:
+            cv_data = load_short_cv_data(language)
+            variant_data, missing_terms = generate_cv_variant(job, cv_data, language, dry_run)
+            save_cv_variant(conn, job["id"], variant_data, missing_terms, language)
+        except Exception as exc:
+            print(f"[cv_tailor] skipped for {job['title']} at {job['company']}: {exc}")
 
         if dry_run:
             print(f"[DRY_RUN] would send the letter over Telegram for {job['title']} at {job['company']}:\n{draft}")

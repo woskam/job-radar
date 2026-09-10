@@ -33,6 +33,21 @@
     white-space: pre-wrap; font-size: 14px; line-height: 1.65; color: var(--text-body-2);
     padding: 18px; border-radius: 12px; background: var(--surface-subtle); border: 1px solid var(--border);
   }
+  .cv-variant-content {
+    padding: 18px; border-radius: 12px; background: var(--surface-subtle); border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .cv-variant-entry + .cv-variant-entry { margin-top: 14px; }
+  .cv-variant-entry-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .cv-variant-entry ul { margin: 0; padding-left: 18px; }
+  .cv-variant-entry li { font-size: 13.5px; line-height: 1.6; color: var(--text-body-2); }
+  .missing-terms { margin-bottom: 14px; }
+  .missing-terms h3 { margin: 0 0 8px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+  .missing-terms-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .missing-terms .tag {
+    font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--surface-subtle);
+    border: 1px solid var(--border); color: var(--text-body);
+  }
 
   .regenerate-card { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--divider); }
   .regenerate-card h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
@@ -142,6 +157,50 @@
         </div>
         {% endif %}
       </div>
+
+      {% if cv_variant %}
+      <div class="card letter-card">
+        <div class="letter-head">
+          <h2>Tailored CV</h2>
+          <span class="word-count mono">{{ cv_variant.generated_at }}</span>
+        </div>
+        {% if cv_regenerated %}<p class="saved-msg">Regenerated.</p>{% endif %}
+        <div class="cv-variant-content">
+          {% for entry in cv_variant.data.experience %}
+          <div class="cv-variant-entry">
+            <div class="cv-variant-entry-title">{{ entry.title }} · {{ entry.company }}</div>
+            <ul>
+              {% for bullet in entry.bullets %}
+              <li>{{ bullet }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+        {% if cv_variant.missing_terms %}
+        <div class="missing-terms">
+          <h3>Vacature noemt ook</h3>
+          <div class="missing-terms-tags">
+            {% for term in cv_variant.missing_terms %}
+            <span class="tag">{{ term }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <form method="get" class="action-row" style="align-items:center;">
+          <select name="font">
+            {% for key, opt in font_options.items() %}
+            <option value="{{ key }}" {% if key == selected_font %}selected{% endif %}>{{ opt.label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" formaction="{{ url_for('job_cv_download_docx', job_id=job['id']) }}" class="btn">Download .docx</button>
+          <button type="submit" formaction="{{ url_for('job_cv_download_pdf', job_id=job['id']) }}" class="btn">Download .pdf</button>
+        </form>
+        <form method="post" action="{{ url_for('regenerate_cv', job_id=job['id']) }}" style="margin-top:10px;">
+          <button type="submit" class="btn">Regenerate tailored CV</button>
+        </form>
+      </div>
+      {% endif %}
 
       {% if interview_prep %}
       <div class="card letter-card">

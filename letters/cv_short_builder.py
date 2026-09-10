@@ -89,12 +89,12 @@ def _strip_table_borders(table) -> None:
     tbl_pr.append(borders)
 
 
-def build_short_cv_docx(language: str = "en", font_name: str = "Arial"):
+def build_short_cv_docx(language: str = "en", font_name: str = "Arial", data: dict | None = None):
     from docx import Document
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
     from docx.shared import Pt, RGBColor
 
-    data = load_short_cv_data(language)
+    data = data or load_short_cv_data(language)
     titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
     muted = RGBColor(*MUTED_RGB)
     accent = RGBColor(*ACCENT_RGB)
@@ -252,11 +252,11 @@ def _ensure_space(pdf, needed_height: float) -> None:
         pdf.add_page()
 
 
-def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica"):
+def build_short_cv_pdf(language: str = "en", font_family: str = "Helvetica", data: dict | None = None):
     from fpdf import FPDF
     from fpdf.enums import XPos, YPos
 
-    data = _sanitize_for_pdf(load_short_cv_data(language))
+    data = _sanitize_for_pdf(data or load_short_cv_data(language))
     titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
 
     pdf = FPDF()
