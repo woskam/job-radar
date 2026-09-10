@@ -69,6 +69,14 @@ def fetch_live_search(base_url: str, source: str, keywords: str = "", limit: int
     respectively, so 0 search results returns a clean empty jobs list (no
     separate template detection needed like with SuccessFactors).
     """
+    return parse_search_results(_fetch_raw(base_url, keywords, limit, offset), base_url, source)
+
+
+def _fetch_raw(base_url: str, keywords: str = "", limit: int = 20, offset: int = 0) -> dict:
+    # Split out from fetch_live_search so callers that need the raw response
+    # (e.g. add_company.py reading refineSearch.totalHits to report the real
+    # total instead of just this page's size) don't have to re-fetch or
+    # duplicate the request-building logic above.
     parsed = urlparse(base_url)
     widgets_url = f"{parsed.scheme}://{parsed.netloc}/widgets"
 
@@ -88,4 +96,4 @@ def fetch_live_search(base_url: str, source: str, keywords: str = "", limit: int
         timeout=15,
     )
     response.raise_for_status()
-    return parse_search_results(response.json(), base_url, source)
+    return response.json()

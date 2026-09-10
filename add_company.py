@@ -126,11 +126,19 @@ def detect_oracle(html, url, final_url):
     }
 
 
+# Recruitee itself serves a generic analytics/tracking snippet from
+# careers-analytics.recruitee.com that shows up in the raw HTML of many
+# career sites regardless of whether they actually use Recruitee for their
+# job board (found via Funda/Transavia both fingerprinting as "recruitee"
+# with no real board behind it) -- these aren't company slugs, skip them.
+_RECRUITEE_NON_COMPANY_SUBDOMAINS = {"www", "api", "cdn", "static", "assets", "careers-analytics", "analytics"}
+
+
 def detect_recruitee(html, url, final_url):
-    m = re.search(r'([a-zA-Z0-9-]+)\.recruitee\.com', final_url) or re.search(r'([a-zA-Z0-9-]+)\.recruitee\.com', html)
-    if not m:
-        return None
-    return {"ats": "recruitee", "recruitee_company_slug": m.group(1)}
+    for slug in re.findall(r'([a-zA-Z0-9-]+)\.recruitee\.com', final_url + " " + html):
+        if slug.lower() not in _RECRUITEE_NON_COMPANY_SUBDOMAINS:
+            return {"ats": "recruitee", "recruitee_company_slug": slug}
+    return None
 
 
 def detect_deel(html, url, final_url):
@@ -223,9 +231,13 @@ DETECTORS = [
 # actual posting comes back, not just that the fingerprint matched.
 
 def verify_workday(fields):
+    # fetch_live_search defaults to a single page of 20 -- data["total"] is
+    # the tenant's real total posting count, not just this page's length
+    # (found live: NXP reported "20 postings" here but data["total"] was 760).
     from scrapers.workday_scraper import fetch_live_search, parse_search_results
     data = fetch_live_search(host=fields["workday_host"], site=fields["workday_site"], search_text="")
-    return parse_search_results(data, host=fields["workday_host"], site=fields["workday_site"], source="test")
+    jobs = parse_search_results(data, host=fields["workday_host"], site=fields["workday_site"], source="test")
+    return jobs, data.get("total")
 
 
 def verify_greenhouse(fields):
@@ -244,8 +256,13 @@ def verify_smartrecruiters(fields):
 
 
 def verify_phenom(fields):
-    from scrapers.phenom_scraper import fetch_live_search
-    return fetch_live_search(base_url=fields["phenom_base_url"], source="test")
+    # Same page-size-cap issue as Workday -- refineSearch.totalHits is the
+    # real total, not this page's length (found live: GSK reported "20
+    # postings" here but totalHits was 703).
+    from scrapers.phenom_scraper import _fetch_raw, parse_search_results
+    data = _fetch_raw(base_url=fields["phenom_base_url"])
+    jobs = parse_search_results(data, fields["phenom_base_url"], source="test")
+    return jobs, data.get("refineSearch", {}).get("totalHits")
 
 
 def verify_dropr(fields):
@@ -259,8 +276,14 @@ def verify_eightfold(fields):
 
 
 def verify_oracle(fields):
-    from scrapers.oracle_scraper import fetch_live_search
-    return fetch_live_search(host=fields["oracle_host"], site_number=fields["oracle_site_number"], source="test")
+    # Same page-size-cap issue as Workday/Phenom -- items[0]["TotalJobsCount"]
+    # is the tenant's real total, not this page's length (default limit=25;
+    # found live: JPMorgan Chase's unfiltered call returns 25 requisitions on
+    # this page but TotalJobsCount=7322).
+    from scrapers.oracle_scraper import _fetch_raw, parse_search_results, parse_total_jobs_count
+    data = _fetch_raw(host=fields["oracle_host"], site_number=fields["oracle_site_number"])
+    jobs = parse_search_results(data, fields["oracle_host"], fields["oracle_site_number"], source="test")
+    return jobs, parse_total_jobs_count(data)
 
 
 def verify_recruitee(fields):
@@ -299,13 +322,26 @@ def verify_getnoticed(fields):
 
 
 def verify_successfactors(fields):
-    from scrapers.successfactors_scraper import fetch_live_search
-    return fetch_live_search(base_url=fields["successfactors_base_url"], source="test")
+    # Same page-size-cap issue as Workday/Phenom, but only for tenants on the
+    # newer JSON-API template -- _search returns (jobs, total) where total is
+    # data["totalJobs"] there (found live: Triodos Bank reports totalJobs=21
+    # but this single call alone returns 10). Older, fully server-side
+    # rendered template tenants have no separate total; _search returns None
+    # there, which the generic tuple-handling in main() treats the same as
+    # "no total to cross-check" (same as a plain list return).
+    from scrapers.successfactors_scraper import _search
+    return _search(base_url=fields["successfactors_base_url"], source="test")
 
 
 def verify_radancy(fields):
-    from scrapers.radancy_scraper import fetch_live_search
-    return fetch_live_search(base_url=fields["radancy_base_url"], source="test")
+    # Same page-size-cap issue as Workday/Phenom -- fetch_live_search only
+    # ever fetches page 1; data-total-job-results in the raw HTML is the
+    # tenant's real total across all pages (found live: the Dutch
+    # police/politie tenant has 95 total jobs across 7 pages of 15).
+    from scrapers.radancy_scraper import _fetch_raw, parse_search_results, parse_total_results
+    html = _fetch_raw(base_url=fields["radancy_base_url"])
+    jobs = parse_search_results(html, fields["radancy_base_url"], source="test")
+    return jobs, parse_total_results(html)
 
 
 VERIFIERS = {
@@ -347,7 +383,7 @@ def print_hints(html: str) -> None:
         print("  (nothing recognizable found either -- likely needs the network tab of a real browser to trace)")
 
 
-def build_entry(name: str, category: str, url: str, fields: dict, jobs: list | None) -> dict:
+def build_entry(name: str, category: str, url: str, fields: dict, jobs: list | None, total: int | None = None) -> dict:
     entry = {"name": name, "category": category, "career_url": url}
     entry.update({k: v for k, v in fields.items() if v is not None and k != "ats"})
     entry["ats"] = fields["ats"]
@@ -355,7 +391,13 @@ def build_entry(name: str, category: str, url: str, fields: dict, jobs: list | N
     missing = [k for k, v in fields.items() if v is None]
     note_bits = [f"auto-detected via add_company.py on {date.today().isoformat()}"]
     if jobs:
-        note_bits.append(f"confirmed {len(jobs)} postings live")
+        if total is not None and total != len(jobs):
+            # Workday/Phenom only return one page (default 20) from this
+            # verification call -- report the tenant's real total instead of
+            # the page-size artifact, so the committed note isn't misleading.
+            note_bits.append(f"confirmed {total} postings live (this page returns {len(jobs)})")
+        else:
+            note_bits.append(f"confirmed {len(jobs)} postings live")
     elif missing:
         note_bits.append(f"NOT verified live -- missing {', '.join(missing)}, add by hand")
     else:
@@ -410,16 +452,24 @@ def main() -> None:
     if missing:
         print(f"Could not auto-extract: {', '.join(missing)} -- you'll likely need the network tab of the apply flow for these.")
 
-    jobs = None
+    jobs, total = None, None
     if not missing:
         print("Testing live...")
         try:
-            jobs = VERIFIERS[ats](match)
+            result = VERIFIERS[ats](match)
+            # Most verifiers return a plain job list (their scraper already
+            # paginates through everything); Workday/Phenom return
+            # (jobs, real_total) since their default call is a single
+            # page -- len(jobs) alone would misreport the tenant's total.
+            jobs, total = result if isinstance(result, tuple) else (result, len(result))
         except Exception as e:
             print(f"Live test failed: {e}")
 
     if jobs:
-        print(f"\nConfirmed: {len(jobs)} postings found. Sample:")
+        if total is not None and total != len(jobs):
+            print(f"\nConfirmed: {total} postings live ({len(jobs)} on this page). Sample:")
+        else:
+            print(f"\nConfirmed: {len(jobs)} postings found. Sample:")
         for j in jobs[:5]:
             print(f"  - {j.get('title')} | {j.get('location')}")
     else:
@@ -427,7 +477,7 @@ def main() -> None:
 
     name = args.name or input("\nCompany name for companies.yaml: ").strip()
     category = args.category or input("Category (e.g. tech, banking, fmcg, consulting): ").strip() or "tech"
-    entry = build_entry(name, category, args.url, match, jobs)
+    entry = build_entry(name, category, args.url, match, jobs, total)
 
     print("\n--- companies.yaml entry ---")
     entry_yaml = yaml.dump([entry], allow_unicode=True, sort_keys=False)

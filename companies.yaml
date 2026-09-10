@@ -635,3 +635,107 @@ companies:
     career_url: "https://www.oliverwyman.com/nl/careers.html"
     ats: "custom"
     note: "Phenom-based, but on a shared Marsh McLennan tenant (careers.marsh.com) covering Marsh/Mercer/Guy Carpenter/Oliver Wyman together -- fetch_live_search returns real jobs but all brands mixed in (mostly Marsh insurance roles), couldn't find a working brand/category filter to isolate Oliver Wyman specifically, checked 2026-08-24"
+
+
+  # Fashion & lifestyle (continued)
+  - name: "About You"
+    category: "fashion"
+    career_url: "https://careers.smartrecruiters.com/aboutyougmbh"
+    ats: "smartrecruiters"
+    smartrecruiters_company_id: "aboutyougmbh"
+    note: "auto-detected via add_company.py on 2026-09-01; confirmed 194 postings live -- German-headquartered, no NL-specific filter, relies on downstream location scoring"
+
+  # Consulting (continued)
+  - name: "PwC Nederland"
+    category: "consulting"
+    career_url: "https://www.pwc.nl/nl/carriere.html"
+    ats: "workday"
+    workday_host: "pwc.wd3.myworkdayjobs.com"
+    workday_site: "Global_Experienced_Careers"
+    note: "auto-detected via add_company.py on 2026-09-01; confirmed 4556 postings live (this page returns 20 -- Workday's default page size, not the real total; re-verified 2026-09-06), incl. an Amsterdam posting -- global list, relies on downstream location scoring"
+
+  # Insurance
+  - name: "NN Group"
+    category: "insurance"
+    career_url: "https://nn-careers.com"
+    ats: "getnoticed"
+    getnoticed_base_url: "https://www.nn-careers.com"
+    note: "auto-detected via add_company.py on 2026-09-01; confirmed 60 postings live, mostly The Hague/Rotterdam"
+
+  # Staffing
+  - name: "Randstad"
+    category: "staffing"
+    career_url: "https://www.werkenbijrandstad.nl"
+    ats: "getnoticed"
+    getnoticed_base_url: "https://www.werkenbijrandstad.nl"
+    note: "auto-detected via add_company.py on 2026-09-01; confirmed 56 postings live, mostly Amsterdam/Diemen/Eindhoven"
+
+  # Mobility
+  - name: "ANWB"
+    category: "mobility"
+    career_url: "https://www.werkenbijanwb.nl/vacatures"
+    ats: "getnoticed"
+    getnoticed_base_url: "https://www.werkenbijanwb.nl/vacatures"
+    note: "auto-detected via add_company.py on 2026-09-06; confirmed 162 postings live, mostly Den Haag"
+
+  # Semiconductor
+  - name: "NXP Semiconductors"
+    category: "semiconductor"
+    career_url: "https://nxp.wd3.myworkdayjobs.com/careers"
+    ats: "workday"
+    workday_host: "nxp.wd3.myworkdayjobs.com"
+    workday_site: "careers"
+    note: "auto-detected via add_company.py on 2026-09-06; confirmed 760 postings live (this page returns 20 -- Workday's default page size, not the real total), incl. a Nijmegen posting -- global list, relies on downstream location scoring"
+
+  # Pharma
+  - name: "GSK Nederland"
+    category: "pharma"
+    career_url: "https://jobs.gsk.com/nl-be/jobs"
+    ats: "phenom"
+    phenom_base_url: "https://jobs.gsk.com/gb/en"
+    note: "auto-detected via add_company.py on 2026-09-06; confirmed 703 postings live (this page returns 20 -- Phenom's default page size, not the real total), no NL posting in the sample -- global list, relies on downstream location scoring"
+
+  - name: "MSD Nederland"
+    category: "pharma"
+    career_url: "https://msd.wd5.myworkdayjobs.com/SearchJobs"
+    ats: "workday"
+    workday_host: "msd.wd5.myworkdayjobs.com"
+    workday_site: "SearchJobs"
+    note: "auto-detected via add_company.py on 2026-09-06; confirmed 827 postings live (this page returns 20 -- Workday's default page size, not the real total), no NL posting in the sample -- global list, relies on downstream location scoring"
+
+  # Tech (continued)
+  - name: "JetBrains"
+    category: "tech"
+    career_url: "https://job-boards.greenhouse.io/jetbrains"
+    ats: "greenhouse"
+    greenhouse_board_token: "jetbrains"
+    note: "auto-detected via add_company.py on 2026-09-08; confirmed 71 postings live, incl. Amsterdam -- jetbrains.com/careers itself is client-side rendered, this is the direct Greenhouse board URL"
+
+  - name: "Bloomreach"
+    category: "tech"
+    career_url: "https://www.bloomreach.com/en/careers"
+    ats: "greenhouse"
+    greenhouse_board_token: "bloomreach"
+    note: "auto-detected via add_company.py on 2026-09-08; confirmed 74 postings live, incl. a Netherlands-based Business Development Representative posting"
+
+  - name: "ServiceNow"
+    category: "tech"
+    career_url: "https://careers.smartrecruiters.com/servicenow"
+    ats: "smartrecruiters"
+    smartrecruiters_company_id: "servicenow"
+    note: "auto-detected via add_company.py on 2026-09-08; confirmed 606 postings live -- global list, no NL posting in the sample, relies on downstream location scoring"
+
+  - name: "SAP Nederland"
+    category: "tech"
+    career_url: "https://jobs.sap.com/go/SAP-Jobs-in-Netherlands/882501/"
+    ats: "sap_successfactors"
+    successfactors_base_url: "https://jobs.sap.com/go/SAP-Jobs-in-Netherlands/882501"
+    note: "auto-detected via add_company.py on 2026-09-08; confirmed 5 postings live, all 's-Hertogenbosch -- this career_url is already NL-filtered, no pagination-cap concern like the global-list entries"
+
+  - name: "Adobe"
+    category: "tech"
+    career_url: "https://adobe.wd5.myworkdayjobs.com/external_experienced"
+    ats: "workday"
+    workday_host: "adobe.wd5.myworkdayjobs.com"
+    workday_site: "external_experienced"
+    note: "auto-detected via add_company.py on 2026-09-08; confirmed 709 postings live (this page returns 20 -- Workday's default page size, not the real total) -- global list, relies on downstream location scoring"

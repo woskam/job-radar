@@ -36,10 +36,13 @@ def parse_search_results(data: dict, host: str, site_number: str, source: str) -
     return jobs
 
 
-def fetch_live_search(
-    host: str, site_number: str, source: str, keyword: str = "", limit: int = 25, offset: int = 0
-) -> list[dict]:
+def _fetch_raw(host: str, site_number: str, keyword: str = "", limit: int = 25, offset: int = 0) -> dict:
     """
+    Shared by fetch_live_search and add_company.py's verifier -- does the
+    actual GET and returns the raw recruitingCEJobRequisitions JSON, so the
+    verifier can also read parse_total_jobs_count() out of it without
+    duplicating the request logic.
+
     Oracle Recruiting Cloud (Fusion HCM) candidate-experience pages are
     client-side (React/ADF) and so don't show ready-made job HTML, but the
     underlying recruitingCEJobRequisitions resource is -- just like Workday's
@@ -72,4 +75,32 @@ def fetch_live_search(
         timeout=15,
     )
     response.raise_for_status()
-    return parse_search_results(response.json(), host, site_number, source)
+    return response.json()
+
+
+def parse_total_jobs_count(data: dict) -> int | None:
+    """
+    `data`'s own top-level "count" field is just the wrapper's item count
+    (always 1 -- one "search" object per call, see parse_search_results), NOT
+    a job count -- don't confuse the two. The real total is
+    items[0]["TotalJobsCount"] (found live: JPMorgan Chase's unfiltered
+    call here returns 25 requisitions on this page but TotalJobsCount=7322).
+    """
+    items = data.get("items") or []
+    if not items:
+        return None
+    return items[0].get("TotalJobsCount")
+
+
+def fetch_live_search(
+    host: str, site_number: str, source: str, keyword: str = "", limit: int = 25, offset: int = 0
+) -> list[dict]:
+    """
+    See _fetch_raw for the underlying API. This wraps it and returns just the
+    parsed job list -- NOTE: only one page (`limit`, default 25) is fetched,
+    no loop over the tenant's real total (see parse_total_jobs_count); a
+    broad/no-keyword search against a large tenant can silently miss
+    postings past this page in scheduler.py's production scrape.
+    """
+    data = _fetch_raw(host, site_number, keyword=keyword, limit=limit, offset=offset)
+    return parse_search_results(data, host, site_number, source)

@@ -104,12 +104,23 @@ def fetch_new_template(
     return api_resp.json()
 
 
-def fetch_live_search(base_url: str, source: str, keywords: str = "") -> list[dict]:
+def _search(base_url: str, source: str, keywords: str = "") -> tuple[list[dict], int | None]:
     """
-    Automatically detects which SF Career Site Builder template a company
-    uses (old: server-side HTML, new: JSON API) and parses accordingly.
-    No login needed -- public job search, same as Workday. `keywords`
-    filters server-side on the search term, same as the Workday scraper.
+    Shared by fetch_live_search and add_company.py's verifier. Automatically
+    detects which SF Career Site Builder template a company uses (old:
+    server-side HTML, new: JSON API) and parses accordingly. No login
+    needed -- public job search, same as Workday. `keywords` filters
+    server-side on the search term, same as the Workday scraper.
+
+    Returns (jobs, total). For the newer JSON-API template, `total` is
+    data["totalJobs"] -- the tenant's real total, not just this page's
+    length: fetch_new_template only ever asks for pageNumber=0, so (like
+    Workday/Phenom) a tenant with more than one page of results would
+    otherwise be undercounted (found live: Triodos Bank reports
+    totalJobs=21 but this single call alone returns 10). The older, fully
+    server-side rendered template has no separate "total" concept -- every
+    job is already in the /search HTML itself -- so total is always None
+    there and len(jobs) IS the real total.
     """
     session = requests.Session()
     search_url = f"{base_url.rstrip('/')}/search?q={keywords}&locationsearch="
@@ -123,6 +134,19 @@ def fetch_live_search(base_url: str, source: str, keywords: str = "") -> list[di
     # the page.
     if CSRF_RE.search(resp.text):
         data = fetch_new_template(session, base_url, search_url, keywords=keywords)
-        return parse_new_template(data, base_url, source)
+        return parse_new_template(data, base_url, source), data.get("totalJobs")
 
-    return parse_old_template(resp.text, base_url, source)
+    return parse_old_template(resp.text, base_url, source), None
+
+
+def fetch_live_search(base_url: str, source: str, keywords: str = "") -> list[dict]:
+    """
+    See _search for the template-detection/total-count details. This wraps
+    it and returns just the parsed job list -- NOTE: for new-template
+    tenants only page 1 is fetched, no loop over the real total (see
+    _search's docstring); a broad/no-keyword search against a large
+    new-template tenant can silently miss postings past this page in
+    scheduler.py's production scrape.
+    """
+    jobs, _ = _search(base_url, source, keywords=keywords)
+    return jobs
