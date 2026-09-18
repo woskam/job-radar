@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -46,7 +47,13 @@ def parse_old_template(html: str, base_url: str, source: str) -> list[dict]:
             "title": link.get_text(strip=True),
             "company": source,
             "location": _find_nearby_location(link),
-            "url": base_url.rstrip("/") + href,
+            # href is root-relative (e.g. "/ey/job/...") and, for a tenant
+            # whose base_url itself has a path segment (e.g. EY's ".../ey"),
+            # already repeats it -- naive string concatenation used to
+            # produce a broken double-segment URL ("/ey/ey/job/...", 404).
+            # urljoin resolves a root-relative href against just the base's
+            # scheme+host, same as a browser would, so it can't duplicate.
+            "url": urljoin(base_url, href),
             "description": None,
         }
 
