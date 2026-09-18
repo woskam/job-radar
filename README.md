@@ -116,6 +116,23 @@ Add `remote_friendly: true` to a company that's genuinely all-remote (hires anyw
 
 Most `ats` values were found by fetching the company's careers page and looking for the platform's fingerprint in the raw HTML (e.g. `myworkdayjobs.com`, `boards-api.greenhouse.io`, `jobs.ashbyhq.com`, an embedded `__NUXT__`/`__NEXT_DATA__` blob, a `data-jibe-search-version` attribute for iCIMS/Jibe) -- see the `note:` field on existing entries for the reasoning behind each one, including the ones that turned out to be blocked or not (yet) solvable without a headless browser.
 
+## Sharing listings with Job Radar Hub (optional)
+
+[Job Radar Hub](https://github.com/woskam/job-radar-hub) is a small,
+separately-hosted, tokengated API that serves generic job-listing data --
+title, company, location, url, description -- so other tools/agents can
+query "what's currently open at these companies" without each having to
+reverse-engineer the same ATS platforms this repo already did. It carries
+no personal data: no relevance score, no status, no letters or CVs. Those
+never leave this machine.
+
+This is entirely opt-in and off by default. To push into a hub instance,
+set `HUB_URL` and `HUB_PUSH_TOKEN` in `.env` -- every scrape cycle then
+pushes the current listing snapshot after the scrape/score step finishes
+(`scheduler.py::push_to_hub`), best-effort: an unreachable hub is logged
+and skipped, never breaks the scrape cycle. Leave both unset to never push
+anywhere.
+
 ## Safety defaults (please keep these)
 
 - **Live LinkedIn/Indeed scraping is intentionally not wired up.** Build and test against saved HTML samples in `tests/sample_data/` first if you ever want to add it, and only enable it once you've reviewed the login flow yourself.

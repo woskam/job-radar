@@ -465,6 +465,32 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> None:
     conn.commit()
 
 
+HUB_LISTING_FIELDS = ["source", "external_id", "title", "company", "location", "url", "description", "scraped_at"]
+
+
+def push_to_hub(conn: sqlite3.Connection) -> None:
+    # Entirely opt-in -- HUB_URL unset means this feature doesn't exist, so a
+    # fresh self-hosted instance never pushes anywhere unless you deliberately
+    # configure it (see README.md's hub-integration section). Only the
+    # generic listing fields go out -- never relevance_score, status, or
+    # anything from letters/interview_preps/cv_variants, all of which stay
+    # entirely private on this machine. Best-effort, same spirit as
+    # _safe_fetch: an unreachable hub must never break the scrape cycle.
+    hub_url = os.environ.get("HUB_URL")
+    if not hub_url:
+        return
+    jobs = [dict(row) for row in conn.execute(f"SELECT {', '.join(HUB_LISTING_FIELDS)} FROM jobs").fetchall()]
+    try:
+        requests.post(
+            f"{hub_url.rstrip('/')}/ingest",
+            json=jobs,
+            headers={"Authorization": f"Bearer {os.environ.get('HUB_PUSH_TOKEN')}"},
+            timeout=30,
+        )
+    except requests.exceptions.RequestException as exc:
+        print(f"[hub_push] skipped, hub unreachable: {exc}")
+
+
 def run(scrape_live: bool, dry_run: bool) -> dict:
     """
     Slow cycle (runs on the 3-hour systemd timer): scrape, score, and send a
@@ -502,6 +528,8 @@ def run(scrape_live: bool, dry_run: bool) -> dict:
             )
         conn.commit()
         requested_ids.append(job["id"])
+
+    push_to_hub(conn)
 
     conn.close()
     return {
