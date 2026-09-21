@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 import requests
@@ -5,6 +6,17 @@ import requests
 from notify.telegram_bot import answer_callback_query, edit_message_text, get_updates
 
 OFFSET_KEY = "telegram_update_offset"
+
+
+def _from_owner(chat: dict | None) -> bool:
+    # In practice a stranger can't press these buttons today -- this bot
+    # only ever posts into your own chat, so nobody else sees them. This is
+    # the one-line defence-in-depth for the day the bot token leaks or ends
+    # up added to a group: a callback/reply is only ever acted on if it
+    # actually came from the configured owner chat, since an approval here
+    # is what triggers a paid Claude call.
+    owner_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    return bool(chat and owner_chat_id and str(chat.get("id")) == str(owner_chat_id))
 
 
 def _try(fn, *args) -> None:
@@ -32,6 +44,9 @@ def _save_offset(conn: sqlite3.Connection, update_id: int) -> None:
 
 
 def _handle_callback(conn: sqlite3.Connection, callback: dict) -> bool:
+    if not _from_owner((callback.get("message") or {}).get("chat")):
+        return False
+
     action, _, job_id_str = callback.get("data", "").partition(":")
     if action not in ("approve", "reject") or not job_id_str.isdigit():
         return False
@@ -78,6 +93,9 @@ def _handle_reply(conn: sqlite3.Connection, message: dict) -> bool:
     - job is already 'rejected' without a reason -> the reason gets filled in
     - otherwise (already processed further) -> ignored
     """
+    if not _from_owner(message.get("chat")):
+        return False
+
     reply_to = message.get("reply_to_message")
     reason = (message.get("text") or "").strip()
     if not reply_to or not reason:
