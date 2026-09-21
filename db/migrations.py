@@ -9,6 +9,13 @@ NEW_JOB_COLUMNS = {
     "rejected_reason": "TEXT",
     "telegram_message_id": "INTEGER",
     "sent_at": "TIMESTAMP",
+    # last_seen_at/closed_at: added so the Hub's staleness detection has
+    # something real to work with -- see scheduler.py::close_missing and
+    # push_to_hub. Before this, `jobs` rows were write-once (INSERT OR
+    # IGNORE) and every push sent the entire table, so a closed vacancy
+    # never actually left the Hub's `active=1` set.
+    "last_seen_at": "TIMESTAMP",
+    "closed_at": "TIMESTAMP",
 }
 
 NEW_LETTER_COLUMNS = {

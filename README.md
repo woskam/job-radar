@@ -128,16 +128,25 @@ never leave this machine.
 
 This is entirely opt-in and off by default. To push into a hub instance,
 set `HUB_URL` and `HUB_PUSH_TOKEN` in `.env` -- every scrape cycle then
-pushes the current listing snapshot after the scrape/score step finishes
-(`scheduler.py::push_to_hub`), best-effort: an unreachable hub is logged
-and skipped, never breaks the scrape cycle. Leave both unset to never push
-anywhere.
+pushes the currently-open listings after the scrape/score step finishes
+(`scheduler.py::push_to_hub`), along with which companies were
+successfully scraped this cycle (`scraped_ok`) so the Hub only updates
+liveness for what this push actually confirmed -- a company whose scrape
+failed that cycle is simply left out, not treated as "everything of theirs
+just closed". Best-effort: an unreachable hub is logged and skipped, never
+breaks the scrape cycle. Leave both unset to never push anywhere.
 
 ## Safety defaults (please keep these)
 
 - **Live LinkedIn/Indeed scraping is intentionally not wired up.** Build and test against saved HTML samples in `tests/sample_data/` first if you ever want to add it, and only enable it once you've reviewed the login flow yourself.
 - **Nothing is ever sent automatically.** The letter generator only ever produces a draft; you mark it `sent` yourself, by hand, in the dashboard.
 - **`DRY_RUN=true`** mocks the Claude API call and Telegram sends with placeholder text, so you can develop and test without incurring costs or noise on your phone.
+- **The dashboard has no login.** It binds to `127.0.0.1` by default (only this machine can reach it) and runs with Flask's debug mode off. To reach a headless Pi's dashboard from your laptop, use SSH port-forwarding rather than exposing it on the network:
+  ```
+  ssh -L 5000:localhost:5000 pi@raspberrypi.local
+  # then open http://localhost:5000 on your laptop
+  ```
+  Only set `DASHBOARD_HOST=0.0.0.0` in `.env` if you've added a login first -- with no auth, that puts your CV, every draft letter, and every interview briefing on your local network, plus `FLASK_DEBUG=1`'s interactive debugger (which executes arbitrary Python for anyone who can reach an error page) if you also turned that on.
 - Never commit `.env`, `profile.yaml`, your CV (`cv.txt`/`cv_nl.txt`/`cv_short.yaml`/`cv_short_nl.yaml`), or `letters/projects.json` -- see `.gitignore`.
 
 ## Contributing
