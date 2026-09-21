@@ -6,9 +6,10 @@ from letters.cv_short_builder import load_short_cv_data
 from letters.cv_tailor import generate_cv_variant, save_cv_variant
 from letters.description_fetcher import fetch_description
 from letters.generator import detect_language, generate_letter, load_cv, load_projects, save_letter
+from letters.llm import ModelReplyError
 from matching.scorer import load_config
 from matching.telegram_approval import process_telegram_approvals
-from notify.telegram_bot import send_letter
+from notify.telegram_bot import send_letter, send_message
 from scheduler import ROOT, get_db
 
 
@@ -50,18 +51,36 @@ def run_approvals(dry_run: bool) -> dict:
         # No automatic content-relevance check anymore after approval -- your
         # "Yes" in Telegram/the dashboard is the relevance check. That step used
         # to silently overrule an explicit approval without telling you.
-        draft = generate_letter(job, cv_text=cv_text, projects=projects, dry_run=dry_run, language=language)
+        try:
+            draft = generate_letter(job, cv_text=cv_text, projects=projects, dry_run=dry_run, language=language)
+        except ModelReplyError as exc:
+            # Leave status at 'approved' so the next cycle retries this job --
+            # a cut-off/empty reply must never be saved as a finished draft.
+            print(f"[generator] skipped for {job['title']} at {job['company']}: {exc}")
+            if not dry_run:
+                send_message(
+                    f"Letter generation failed for {job['title']} at {job['company']}: {exc}\n"
+                    "Will retry next cycle."
+                )
+            continue
         save_letter(conn, job["id"], draft, language=language)
         drafted_ids.append(job["id"])
 
         # A tailored CV alongside the letter -- best-effort: a broken/missing
-        # cv_short.yaml or a malformed LLM response must never take down the
-        # letter flow or the rest of this batch, same spirit as
-        # scheduler.py's _safe_fetch.
+        # cv_short.yaml must never take down the letter flow or the rest of
+        # this batch, same spirit as scheduler.py's _safe_fetch. A malformed
+        # LLM reply is handled inside generate_cv_variant itself (falls back
+        # to the untouched CV) -- fallback_reason tells us it happened so it
+        # isn't silently invisible.
         try:
             cv_data = load_short_cv_data(language)
-            variant_data, missing_terms = generate_cv_variant(job, cv_data, language, dry_run)
+            variant_data, missing_terms, fallback_reason = generate_cv_variant(job, cv_data, language, dry_run)
             save_cv_variant(conn, job["id"], variant_data, missing_terms, language)
+            if fallback_reason and not dry_run:
+                send_message(
+                    f"CV tailoring fell back to the untouched CV for {job['title']} at "
+                    f"{job['company']}: {fallback_reason}"
+                )
         except Exception as exc:
             print(f"[cv_tailor] skipped for {job['title']} at {job['company']}: {exc}")
 

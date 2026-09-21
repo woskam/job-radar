@@ -25,6 +25,7 @@ from letters.generator import (
     save_letter,
 )
 from letters.interview_prep import generate_interview_prep, save_interview_prep
+from letters.llm import ModelReplyError
 from matching.scorer import load_config, score_breakdown
 
 DRY_RUN = os.environ.get("DRY_RUN", "true").lower() == "true"
@@ -364,6 +365,9 @@ def job_detail(job_id):
         regenerated=request.args.get("regenerated"),
         prep_generated=request.args.get("prep_generated"),
         cv_regenerated=request.args.get("cv_regenerated"),
+        letter_error=request.args.get("letter_error"),
+        prep_error=request.args.get("prep_error"),
+        cv_error=request.args.get("cv_error"),
         status_meta=status_meta,
         sidebar_counts=sidebar_counts,
         match_reasons=_match_reasons(dict(job)),
@@ -418,16 +422,19 @@ def regenerate_letter(job_id):
     previous_draft = (letter["final_text"] or letter["draft"] or "") if letter else ""
     language = (letter["language"] if letter else None) or detect_language(job["description"] or job["title"] or "")
 
-    draft = generate_letter(
-        dict(job),
-        cv_text=load_cv(language),
-        projects=load_projects(),
-        dry_run=DRY_RUN,
-        language=language,
-        previous_draft=previous_draft,
-        feedback=feedback,
-        selected_project_ids=project_ids or None,
-    )
+    try:
+        draft = generate_letter(
+            dict(job),
+            cv_text=load_cv(language),
+            projects=load_projects(),
+            dry_run=DRY_RUN,
+            language=language,
+            previous_draft=previous_draft,
+            feedback=feedback,
+            selected_project_ids=project_ids or None,
+        )
+    except ModelReplyError as exc:
+        return redirect(url_for("job_detail", job_id=job_id, letter_error=str(exc)))
 
     conn = get_db()
     save_letter(conn, job_id, draft, language=language)
@@ -447,14 +454,17 @@ def interview_prep(job_id):
     letter_text = (letter["final_text"] or letter["draft"] or "") if letter else ""
     language = (letter["language"] if letter else None) or detect_language(job["description"] or job["title"] or "")
 
-    content = generate_interview_prep(
-        dict(job),
-        cv_text=load_cv(language),
-        projects=load_projects(),
-        dry_run=DRY_RUN,
-        language=language,
-        letter_text=letter_text,
-    )
+    try:
+        content = generate_interview_prep(
+            dict(job),
+            cv_text=load_cv(language),
+            projects=load_projects(),
+            dry_run=DRY_RUN,
+            language=language,
+            letter_text=letter_text,
+        )
+    except ModelReplyError as exc:
+        return redirect(url_for("job_detail", job_id=job_id, prep_error=str(exc)))
 
     conn = get_db()
     save_interview_prep(conn, job_id, content)
@@ -473,11 +483,13 @@ def regenerate_cv(job_id):
 
     language = (letter["language"] if letter else None) or detect_language(job["description"] or job["title"] or "")
     cv_data = load_short_cv_data(language)
-    variant_data, missing_terms = generate_cv_variant(dict(job), cv_data, language, DRY_RUN)
+    variant_data, missing_terms, fallback_reason = generate_cv_variant(dict(job), cv_data, language, DRY_RUN)
 
     conn = get_db()
     save_cv_variant(conn, job_id, variant_data, missing_terms, language)
     conn.close()
+    if fallback_reason:
+        return redirect(url_for("job_detail", job_id=job_id, cv_error=f"Kept the previous CV -- {fallback_reason}"))
     return redirect(url_for("job_detail", job_id=job_id, cv_regenerated=1))
 
 
@@ -736,4 +748,15 @@ def cv_download_pdf():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # debug=True runs the Werkzeug interactive debugger, which executes
+    # arbitrary Python for anyone who can reach an error page -- fine on
+    # 127.0.0.1 (only this machine can reach it), a real risk the moment
+    # DASHBOARD_HOST is set to 0.0.0.0 to reach this from another device.
+    # Reach a headless Pi over SSH port-forwarding instead of exposing it:
+    #   ssh -L 5000:localhost:5000 pi@raspberrypi.local
+    #   then open http://localhost:5000 on your laptop
+    app.run(
+        debug=os.environ.get("FLASK_DEBUG") == "1",
+        host=os.environ.get("DASHBOARD_HOST", "127.0.0.1"),
+        port=5000,
+    )

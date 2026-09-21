@@ -169,15 +169,16 @@ def generate_letter(
 
     from anthropic import Anthropic
 
+    from letters.llm import MAX_TOKENS, MODEL, reply_text
+
     client = Anthropic()
     response = client.messages.create(
-        model="claude-sonnet-5",
-        max_tokens=3000,
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
     )
-    text_blocks = [block.text for block in response.content if block.type == "text"]
-    return "\n".join(text_blocks)
+    return reply_text(response)
 
 
 def save_letter(conn: sqlite3.Connection, job_id: int, draft: str, language: str = "en") -> None:

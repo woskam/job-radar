@@ -118,22 +118,33 @@ def _merge_variant(cv_data: dict, llm_result: dict) -> dict:
 
 def generate_cv_variant(
     job: dict, cv_data: dict, language: str, dry_run: bool
-) -> tuple[dict, list[str]]:
+) -> tuple[dict, list[str], str | None]:
+    """Returns (data, missing_terms, fallback_reason). fallback_reason is None
+    on a successful tailor, otherwise a short explanation of why the
+    untouched cv_data was returned instead -- never raises, so a malformed
+    or truncated LLM reply can never break the approval cycle, same spirit
+    as scheduler.py's _safe_fetch."""
     if dry_run:
-        return copy.deepcopy(cv_data), ["[DRY_RUN mock -- no real API call made]"]
+        return copy.deepcopy(cv_data), ["[DRY_RUN mock -- no real API call made]"], None
 
     system_prompt, user_prompt = build_cv_tailor_prompt(job, cv_data, language)
 
     from anthropic import Anthropic
 
+    from letters.llm import MAX_TOKENS, MODEL, ModelReplyError, reply_text
+
     client = Anthropic()
     response = client.messages.create(
-        model="claude-sonnet-5",
-        max_tokens=2000,
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
     )
-    raw = "\n".join(block.text for block in response.content if block.type == "text").strip()
+
+    try:
+        raw = reply_text(response)
+    except ModelReplyError as exc:
+        return copy.deepcopy(cv_data), [], str(exc)
 
     try:
         # The prompt asks for a bare JSON object, but models occasionally wrap
@@ -144,14 +155,12 @@ def generate_cv_variant(
             raw = raw[raw.index("\n") + 1 :] if "\n" in raw else raw
         llm_result = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
-        # Never let a malformed LLM response break the approval cycle -- fall
-        # back to the untouched CV, same spirit as scheduler.py's _safe_fetch.
-        return copy.deepcopy(cv_data), []
+        return copy.deepcopy(cv_data), [], "reply was not valid JSON"
 
     merged = _merge_variant(cv_data, llm_result)
     missing_terms = llm_result.get("missing_terms")
     missing_terms = [t for t in missing_terms if isinstance(t, str) and t.strip()] if isinstance(missing_terms, list) else []
-    return merged, missing_terms
+    return merged, missing_terms, None
 
 
 def save_cv_variant(conn: sqlite3.Connection, job_id: int, data: dict, missing_terms: list[str], language: str) -> None:

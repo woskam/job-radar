@@ -239,18 +239,20 @@ Output exactly two sections, nothing else, no commentary:
 <the projects.json content, valid JSON, or [] if there's nothing to include>
 """
 
+    from letters.llm import MAX_TOKENS, MODEL, reply_text
+
     print("Calling Claude...")
     try:
         response = Anthropic(api_key=api_key).messages.create(
-            model="claude-sonnet-5",
-            max_tokens=4000,
+            model=MODEL,
+            max_tokens=MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
         )
+        text = reply_text(response)
     except Exception as e:
         print(f"Claude call failed: {e} -- edit the copied template files by hand instead.")
         return
 
-    text = "\n".join(block.text for block in response.content if block.type == "text")
     cv_match = re.search(r"=== CV ===\s*(.*?)\s*=== PROJECTS_JSON ===\s*(.*)", text, re.DOTALL)
     if not cv_match:
         print("Couldn't parse Claude's response into the expected two sections -- printing it raw:")
