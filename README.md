@@ -114,6 +114,8 @@ By hand: add an entry to `companies.yaml`'s `companies:` list. The `ats` field d
 
 Add `remote_friendly: true` to a company that's genuinely all-remote (hires anywhere, e.g. GitLab) -- the scorer then won't penalize a "Remote, &lt;country&gt;" location as being abroad, unlike for companies where that phrasing really does mean domestic-only remote work.
 
+Add `segment: "startup"` to a company sourced from a VC portfolio (e.g. YCombinator) rather than picked as an established/enterprise employer -- purely informational, not read by any scoring logic. Absent/unset means the existing default (large/established company); see `bulk_add_from_yc.py` for how the current batch of startup entries was sourced and verified.
+
 Most `ats` values were found by fetching the company's careers page and looking for the platform's fingerprint in the raw HTML (e.g. `myworkdayjobs.com`, `boards-api.greenhouse.io`, `jobs.ashbyhq.com`, an embedded `__NUXT__`/`__NEXT_DATA__` blob, a `data-jibe-search-version` attribute for iCIMS/Jibe) -- see the `note:` field on existing entries for the reasoning behind each one, including the ones that turned out to be blocked or not (yet) solvable without a headless browser.
 
 ## Sharing listings with Job Radar Hub (optional)

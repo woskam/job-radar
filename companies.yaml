@@ -56,6 +56,13 @@
 #                             Kearney (403, Cloudflare)
 #
 # See README.md for the field schema per `ats` type, and how to add a new company.
+#
+# `segment: "startup"` marks a company sourced from a VC portfolio
+# (currently: YCombinator's public "hiring" directory, see
+# bulk_add_from_yc.py) rather than picked as an established employer --
+# purely informational, not read by any scoring logic. Absent means the
+# default (large/established company), same as every entry above/below
+# this comment that predates the field.
 companies:
   # Sportswear & outdoor
   - name: "adidas"

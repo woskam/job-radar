@@ -46,4 +46,7 @@ platform).
 - Keep `companies.yaml` entries in the existing shape: `name`, `category`,
   `career_url`, `ats` + that platform's specific fields, and a `note:`
   whenever there's anything non-obvious about how you found or verified it
-  (see any existing entry for the convention).
+  (see any existing entry for the convention). Add `segment: "startup"` if
+  the company was sourced from a VC portfolio rather than picked as an
+  established employer -- see `bulk_add_from_yc.py` for the bulk version of
+  this same workflow, used for YCombinator's directory.
