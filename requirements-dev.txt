@@ -1,0 +1,5 @@
+# Only for check_cv_ats_safety.py -- a manual/CI sanity check, never run by
+# the always-on scrape/score/letter pipeline. Kept out of requirements.txt
+# so the Pi's production footprint doesn't carry a dependency it never
+# actually needs. Install with: pip install -r requirements-dev.txt
+pypdf==6.18.0
