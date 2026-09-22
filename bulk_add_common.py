@@ -77,10 +77,39 @@ def load_existing_names(companies_path: Path = COMPANIES_PATH) -> set[str]:
     return {c["name"].strip().lower() for c in data.get("companies", [])}
 
 
+def verify_and_build(name: str, category: str, career_url: str, match: dict, source_note: str | None) -> tuple[str, dict | None]:
+    """Shared tail of both detection paths: given an already-identified ATS
+    `match` dict (whether found via DETECTORS or already known from the
+    candidate's own source), live-verifies it and builds a companies.yaml
+    entry. Returns (outcome, entry_or_None), outcome one of "confirmed" or
+    "unverified" (missing fields, or no live posting confirmed)."""
+    ats = match["ats"]
+    missing = [k for k, v in match.items() if v is None]
+    jobs, total = None, None
+    if not missing:
+        try:
+            result = VERIFIERS[ats](match)
+            jobs, total = result if isinstance(result, tuple) else (result, len(result))
+        except Exception:
+            jobs = None
+
+    if not jobs:
+        return "unverified", None
+
+    entry = build_entry(name, category, career_url, match, jobs, total)
+    note = entry.pop("note")
+    entry["segment"] = "startup"
+    entry["note"] = f"{note}; {source_note}" if source_note else note
+    return "confirmed", entry
+
+
 def try_company(candidate: dict) -> tuple[str, dict | None]:
     """Returns (outcome, entry_or_None). outcome is one of "confirmed",
     "unverified" (platform detected but couldn't confirm a live posting),
-    "no_platform", or "blocked" (same meaning as add_company.py's fetch())."""
+    "no_platform", or "blocked" (same meaning as add_company.py's fetch()).
+    Discovers the ATS via find_career_page()/DETECTORS -- for a candidate
+    that already knows its ATS (e.g. Pegel's export), skip straight to
+    verify_and_build() instead."""
     name = candidate["name"].strip()
     website = candidate["website"].strip()
 
@@ -101,25 +130,19 @@ def try_company(candidate: dict) -> tuple[str, dict | None]:
     if not match:
         return "no_platform", None
 
-    ats = match["ats"]
-    missing = [k for k, v in match.items() if v is None]
-    jobs, total = None, None
-    if not missing:
-        try:
-            result = VERIFIERS[ats](match)
-            jobs, total = result if isinstance(result, tuple) else (result, len(result))
-        except Exception:
-            jobs = None
+    return verify_and_build(name, candidate["category"], final_url, match, candidate.get("source_note"))
 
-    if not jobs:
-        return "unverified", None
 
-    entry = build_entry(name, candidate["category"], final_url, match, jobs, total)
-    note = entry.pop("note")
-    entry["segment"] = "startup"
-    source_note = candidate.get("source_note")
-    entry["note"] = f"{note}; {source_note}" if source_note else note
-    return "confirmed", entry
+def try_company_known_ats(candidate: dict) -> tuple[str, dict | None]:
+    """Like try_company(), but for a candidate whose ATS is already known
+    (candidate["match"], same shape add_company.py's DETECTORS return) --
+    skips find_career_page()/DETECTORS entirely and never touches the
+    company's own website, just its ATS's public API. Used for sources
+    that publish the mapping themselves (e.g. Pegel Berlin's companies.json:
+    ats_provider + ats_handle already resolved)."""
+    name = candidate["name"].strip()
+    career_url = candidate["website"].strip()
+    return verify_and_build(name, candidate["category"], career_url, candidate["match"], candidate.get("source_note"))
 
 
 def run_bulk(
@@ -130,6 +153,7 @@ def run_bulk(
     report: Path,
     offset: int = 0,
     limit: int | None = None,
+    try_fn=try_company,
 ) -> None:
     """Runs try_company() over candidates[offset:offset+limit], skipping
     names already in companies.yaml or with no website, and writes a
@@ -160,7 +184,7 @@ def run_bulk(
 
         print(f"[{i}/{len(chunk)}] {name} ({website}) ...", end=" ", flush=True)
         try:
-            outcome, entry = try_company(candidate)
+            outcome, entry = try_fn(candidate)
         except Exception as e:
             outcome, entry = "blocked", None
             print(f"error: {e}")
