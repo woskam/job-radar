@@ -3098,3 +3098,52 @@ companies:
     ashby_board_token: "zip"
     segment: "startup"
     note: "auto-detected via add_company.py on 2026-09-21; confirmed 122 postings live; YC batch Summer 2020"
+
+
+  # ---------------------------------------------------------------------
+  # Startups sourced from Balderton Capital's public portfolio page
+  # (balderton.com/companies), via bulk_add_from_vc.py --vc balderton on
+  # 2026-09-22. Only the first static page (~19 unique, still-"live" i.e.
+  # not exited/acquired) was checked -- FacetWP paginates the full ~128
+  # company list behind an AJAX call that didn't cooperate, see
+  # vc_portfolios.py's header for details/how to pick this back up.
+  # ---------------------------------------------------------------------
+  - name: "Agave Games"
+    category: "consumer"
+    career_url: "https://www.agavegames.com/careers"
+    ats: "ashby"
+    ashby_board_token: "agavegames"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-22; confirmed 4 postings live; sourced via Balderton Capital's public portfolio page"
+
+  - name: "Aircall"
+    category: "enterprise"
+    career_url: "https://aircall.io/careers/"
+    ats: "greenhouse"
+    greenhouse_board_token: "aircallioinc"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-22; confirmed 74 postings live; sourced via Balderton Capital's public portfolio page"
+
+  - name: "Attio"
+    category: "enterprise"
+    career_url: "https://attio.com/careers"
+    ats: "ashby"
+    ashby_board_token: "attio"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-22; confirmed 39 postings live; sourced via Balderton Capital's public portfolio page"
+
+  - name: "Carwow"
+    category: "consumer"
+    career_url: "https://www.carwow.co.uk/jobs"
+    ats: "ashby"
+    ashby_board_token: "Carwow"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-22; confirmed 31 postings live; sourced via Balderton Capital's public portfolio page"
+
+  - name: "The Exploration Company"
+    category: "resilience"
+    career_url: "https://www.exploration.space/careers"
+    ats: "ashby"
+    ashby_board_token: "the-exploration-company"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-22; confirmed 102 postings live; sourced via Balderton Capital's public portfolio page"
