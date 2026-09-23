@@ -27,7 +27,7 @@ TEMPLATE = """<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Job Radar Companies</title>
   <meta name="description" content="Companies Job Radar tracks for job listings.">
-  <link rel="canonical" href="https://job-radar-c66.pages.dev/companies">
+  <link rel="canonical" href="https://12getajob.com/companies">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/assets/analytics.js"></script>
 </head>
