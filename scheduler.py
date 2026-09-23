@@ -547,7 +547,7 @@ HUB_LISTING_FIELDS = [
 ]
 
 
-def push_to_hub(conn: sqlite3.Connection) -> None:
+def push_to_hub(conn: sqlite3.Connection, config: dict) -> None:
     # Entirely opt-in -- HUB_URL unset means this feature doesn't exist, so a
     # fresh self-hosted instance never pushes anywhere unless you deliberately
     # configure it (see README.md's hub-integration section). Only the
@@ -574,9 +574,25 @@ def push_to_hub(conn: sqlite3.Connection) -> None:
     rows = conn.execute(
         f"SELECT {', '.join(HUB_LISTING_FIELDS)} FROM jobs WHERE closed_at IS NULL"
     ).fetchall()
+
+    # category/segment live only in companies.yaml (not the jobs table --
+    # no need to duplicate them there), so look them up by company name at
+    # push time. The Hub stores these alongside each listing so its own
+    # email-alerts feature can filter on them the same way companies.html
+    # does; absent for a company with no segment (the "established" default).
+    category_by_company = {c["name"]: (c.get("category"), c.get("segment")) for c in config.get("companies", [])}
+
+    listings = []
+    for row in rows:
+        listing = dict(row)
+        category, segment = category_by_company.get(listing["company"], (None, None))
+        listing["category"] = category
+        listing["segment"] = segment
+        listings.append(listing)
+
     payload = {
         "scraped_ok": [{"source": company, "company": company} for company in sorted(SCRAPE_SUCCESSES)],
-        "listings": [dict(row) for row in rows],
+        "listings": listings,
     }
     try:
         requests.post(
@@ -663,7 +679,7 @@ def run(scrape_live: bool, dry_run: bool) -> dict:
         conn.commit()
         requested_ids.append(job["id"])
 
-    push_to_hub(conn)
+    push_to_hub(conn, config)
     _report_scrape_failures(conn, dry_run)
 
     conn.close()
