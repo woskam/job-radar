@@ -25,8 +25,8 @@ TEMPLATE = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Job Radar Companies</title>
-  <meta name="description" content="Companies Job Radar tracks for job listings.">
+  <title>12GetAJob Companies</title>
+  <meta name="description" content="Companies 12GetAJob tracks for job listings.">
   <link rel="canonical" href="https://12getajob.com/companies">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/assets/analytics.js"></script>
@@ -34,17 +34,17 @@ TEMPLATE = """<!doctype html>
 <body>
   <div class="wrap">
     <header class="site-header">
-      <a href="/">Job Radar</a>
+      <a href="/">12GetAJob</a>
       <nav>
+        <a href="/jobs">Jobs</a>
         <a href="/companies">Companies</a>
-        <a href="/api">API docs</a>
-        <a href="https://github.com/woskam/job-radar">Open source</a>
-        <a href="https://github.com/woskam/job-radar-hub">Hub source</a>
+        <a href="/alerts">Alerts</a>
+        <a href="/developers">For developers</a>
       </nav>
     </header>
 
     <h1>Companies</h1>
-    <p class="tagline"><span id="count">{count}</span> of {count} companies Job Radar tracks for job listings, from large employers to startups and scale-ups.</p>
+    <p class="tagline"><span id="count">{count}</span> of {count} companies 12GetAJob tracks for job listings, from large employers to startups and scale-ups.</p>
 
     <div class="filters">
       <input type="search" id="q" placeholder="Search company or category&hellip;">
@@ -63,6 +63,13 @@ TEMPLATE = """<!doctype html>
       <tr><th>Company</th><th>Category</th><th>Segment</th></tr>
 {rows}
     </table>
+
+    <footer>
+      <a href="https://github.com/woskam/job-radar">job-radar</a> &middot;
+      <a href="https://github.com/woskam/job-radar-hub">job-radar-hub</a> &middot;
+      <a href="https://github.com/woskam/job-radar-site">this site's source</a> &middot;
+      <a href="/privacy">privacy</a>
+    </footer>
   </div>
 
   <script>
