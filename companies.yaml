@@ -53,7 +53,10 @@
 #                             (rate-limited, respected not bypassed), Goldman Sachs
 #                             (requires an authenticated Okta session), McKinsey
 #                             (every request hangs/resets, HTTP/2 and HTTP/1.1 both),
-#                             Kearney (403, Cloudflare)
+#                             Kearney (403, Cloudflare), SAP Nederland (403 on every
+#                             keyword query, consistently across every cycle for
+#                             several days as of 2026-09-24 -- previously working,
+#                             now actively blocking)
 #
 # See README.md for the field schema per `ats` type, and how to add a new company.
 #
@@ -740,9 +743,8 @@ companies:
   - name: "SAP Nederland"
     category: "tech"
     career_url: "https://jobs.sap.com/go/SAP-Jobs-in-Netherlands/882501/"
-    ats: "sap_successfactors"
-    successfactors_base_url: "https://jobs.sap.com/go/SAP-Jobs-in-Netherlands/882501"
-    note: "auto-detected via add_company.py on 2026-09-08; confirmed 5 postings live, all 's-Hertogenbosch -- this career_url is already NL-filtered, no pagination-cap concern like the global-list entries"
+    ats: "unknown"
+    note: "worked fine when added 2026-09-08; started returning 403 Forbidden on every keyword query consistently across every scrape cycle for several days as of 2026-09-24 -- confirmed live, this is an active block, not a transient blip. Stopped scraping per CLAUDE.md's hard rule; check manually before re-enabling."
 
   - name: "Adobe"
     category: "tech"
