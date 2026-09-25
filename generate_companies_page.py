@@ -31,9 +31,36 @@ TEMPLATE = """<!doctype html>
   <link rel="canonical" href="https://12getajob.com/companies">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/assets/analytics.js"></script>
+  <style>
+    .skip-link {{
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      padding: 0.5em 1em;
+      background: #fff;
+      color: #000;
+      z-index: 100;
+    }}
+    .skip-link:focus {{
+      left: 0.5em;
+      top: 0.5em;
+    }}
+    .sr-only {{
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }}
+  </style>
 </head>
 <body>
-  <div class="wrap">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <main class="wrap" id="main-content">
     <header class="site-header">
       <a href="/">12GetAJob</a>
       <nav>
@@ -48,20 +75,21 @@ TEMPLATE = """<!doctype html>
     <p class="tagline"><span id="count">{count}</span> of {count} companies 12GetAJob tracks for job listings, from large employers to startups and scale-ups.</p>
 
     <div class="filters">
-      <input type="search" id="q" placeholder="Search company or category&hellip;">
-      <select id="segment-filter">
+      <input type="search" id="q" placeholder="Search company or category&hellip;" aria-label="Search company or category">
+      <select id="segment-filter" aria-label="Filter by segment">
         <option value="">All segments</option>
         <option value="startup">Startups &amp; scale-ups</option>
         <option value="__established__">Established</option>
       </select>
-      <select id="category-filter">
+      <select id="category-filter" aria-label="Filter by category">
         <option value="">All categories</option>
 {category_options}
       </select>
     </div>
 
     <table id="companies-table">
-      <tr><th>Company</th><th>Category</th><th>Segment</th></tr>
+      <caption class="sr-only">Companies 12GetAJob tracks for job listings</caption>
+      <tr><th scope="col">Company</th><th scope="col">Category</th><th scope="col">Segment</th></tr>
 {rows}
     </table>
 
@@ -71,7 +99,7 @@ TEMPLATE = """<!doctype html>
       <a href="https://github.com/woskam/job-radar-site">this site's source</a> &middot;
       <a href="/privacy">privacy</a>
     </footer>
-  </div>
+  </main>
 
   <script>
     const rows = Array.from(document.querySelectorAll('#companies-table tr[data-name]'));
