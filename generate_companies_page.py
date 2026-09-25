@@ -26,8 +26,17 @@ TEMPLATE = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <title>12GetAJob Companies</title>
   <meta name="description" content="Companies 12GetAJob tracks for job listings.">
+  <meta name="theme-color" content="#1e5a8a" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#6fb3e8" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://12getajob.com/companies">
+  <meta property="og:title" content="12GetAJob Companies">
+  <meta property="og:description" content="Companies 12GetAJob tracks for job listings.">
   <link rel="canonical" href="https://12getajob.com/companies">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/assets/analytics.js"></script>
@@ -60,7 +69,7 @@ TEMPLATE = """<!doctype html>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
-  <main class="wrap" id="main-content">
+  <div class="wrap">
     <header class="site-header">
       <a href="/">12GetAJob</a>
       <nav>
@@ -71,27 +80,29 @@ TEMPLATE = """<!doctype html>
       </nav>
     </header>
 
-    <h1>Companies</h1>
-    <p class="tagline"><span id="count">{count}</span> of {count} companies 12GetAJob tracks for job listings, from large employers to startups and scale-ups.</p>
+    <main id="main-content">
+      <h1>Companies</h1>
+      <p class="tagline"><span id="count">{count}</span> of {count} companies 12GetAJob tracks for job listings, from large employers to startups and scale-ups.</p>
 
-    <div class="filters">
-      <input type="search" id="q" placeholder="Search company or category&hellip;" aria-label="Search company or category">
-      <select id="segment-filter" aria-label="Filter by segment">
-        <option value="">All segments</option>
-        <option value="startup">Startups &amp; scale-ups</option>
-        <option value="__established__">Established</option>
-      </select>
-      <select id="category-filter" aria-label="Filter by category">
-        <option value="">All categories</option>
+      <div class="filters">
+        <input type="search" id="q" placeholder="Search company or category&hellip;" aria-label="Search company or category">
+        <select id="segment-filter" aria-label="Filter by segment">
+          <option value="">All segments</option>
+          <option value="startup">Startups &amp; scale-ups</option>
+          <option value="__established__">Established</option>
+        </select>
+        <select id="category-filter" aria-label="Filter by category">
+          <option value="">All categories</option>
 {category_options}
-      </select>
-    </div>
+        </select>
+      </div>
 
-    <table id="companies-table">
-      <caption class="sr-only">Companies 12GetAJob tracks for job listings</caption>
-      <tr><th scope="col">Company</th><th scope="col">Category</th><th scope="col">Segment</th></tr>
+      <table id="companies-table">
+        <caption class="sr-only">Companies 12GetAJob tracks for job listings</caption>
+        <tr><th scope="col">Company</th><th scope="col">Category</th><th scope="col">Segment</th></tr>
 {rows}
-    </table>
+      </table>
+    </main>
 
     <footer>
       <a href="https://github.com/woskam/job-radar">job-radar</a> &middot;
@@ -99,7 +110,7 @@ TEMPLATE = """<!doctype html>
       <a href="https://github.com/woskam/job-radar-site">this site's source</a> &middot;
       <a href="/privacy">privacy</a>
     </footer>
-  </main>
+  </div>
 
   <script>
     const rows = Array.from(document.querySelectorAll('#companies-table tr[data-name]'));
