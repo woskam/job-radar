@@ -25,6 +25,7 @@ TEMPLATE = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>12GetAJob Companies</title>
   <meta name="description" content="Companies 12GetAJob tracks for job listings.">
   <link rel="canonical" href="https://12getajob.com/companies">
