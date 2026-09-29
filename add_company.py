@@ -219,6 +219,28 @@ def detect_join(html, url, final_url):
     return {"ats": "join", "join_handle": m.group(1)}
 
 
+def detect_lever(html, url, final_url):
+    m = re.search(r'jobs\.lever\.co/([a-zA-Z0-9_-]+)', html)
+    if not m:
+        return None
+    return {"ats": "lever", "lever_handle": m.group(1)}
+
+
+def detect_workable(html, url, final_url):
+    m = re.search(r'apply\.workable\.com/([a-zA-Z0-9_-]+)/', html) \
+        or re.search(r'workable\.com/assets/embed\.js["\'][^>]*data-account=["\']([a-zA-Z0-9_-]+)', html)
+    if not m:
+        return None
+    return {"ats": "workable", "workable_handle": m.group(1)}
+
+
+def detect_teamtailor(html, url, final_url):
+    m = re.search(r'([a-zA-Z0-9_-]+)\.teamtailor\.com', html)
+    if not m:
+        return None
+    return {"ats": "teamtailor", "teamtailor_handle": m.group(1)}
+
+
 DETECTORS = [
     detect_workday,
     detect_greenhouse,
@@ -239,6 +261,9 @@ DETECTORS = [
     detect_radancy,
     detect_personio,
     detect_join,
+    detect_lever,
+    detect_workable,
+    detect_teamtailor,
 ]
 
 
@@ -376,6 +401,21 @@ def verify_join(fields):
     return jobs, parse_total(next_data)
 
 
+def verify_lever(fields):
+    from scrapers.lever_scraper import fetch_live_search
+    return fetch_live_search(handle=fields["lever_handle"], source="test")
+
+
+def verify_workable(fields):
+    from scrapers.workable_scraper import fetch_live_search
+    return fetch_live_search(handle=fields["workable_handle"], source="test")
+
+
+def verify_teamtailor(fields):
+    from scrapers.teamtailor_scraper import fetch_live_search
+    return fetch_live_search(handle=fields["teamtailor_handle"], source="test")
+
+
 VERIFIERS = {
     "workday": verify_workday,
     "greenhouse": verify_greenhouse,
@@ -396,6 +436,9 @@ VERIFIERS = {
     "radancy": verify_radancy,
     "personio": verify_personio,
     "join": verify_join,
+    "lever": verify_lever,
+    "workable": verify_workable,
+    "teamtailor": verify_teamtailor,
 }
 
 HINT_PATTERNS = [

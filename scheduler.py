@@ -25,6 +25,7 @@ from scrapers.greenhouse_scraper import fetch_live_search as fetch_greenhouse
 from scrapers.homerun_scraper import fetch_live_search as fetch_homerun
 from scrapers.join_scraper import fetch_live_search as fetch_join
 from scrapers.jobylon_scraper import fetch_live_search as fetch_jobylon
+from scrapers.lever_scraper import fetch_live_search as fetch_lever
 from scrapers.mollie_scraper import fetch_live_search as fetch_mollie
 from scrapers.personio_scraper import fetch_live_search as fetch_personio
 from scrapers.oracle_scraper import fetch_live_search as fetch_oracle
@@ -33,11 +34,13 @@ from scrapers.radancy_scraper import fetch_live_search as fetch_radancy
 from scrapers.recruitee_scraper import fetch_live_search as fetch_recruitee
 from scrapers.smartrecruiters_scraper import fetch_live_search as fetch_smartrecruiters
 from scrapers.successfactors_scraper import fetch_live_search as fetch_successfactors
+from scrapers.teamtailor_scraper import fetch_live_search as fetch_teamtailor
 from scrapers.tsf_scraper import fetch_live_search as fetch_tsf
 from scrapers.uwv_scraper import fetch_live_search as fetch_uwv
 from scrapers.vodafoneziggo_scraper import fetch_live_search as fetch_vodafoneziggo
 from scrapers.wba_scraper import fetch_live_search as fetch_wba
 from scrapers.werkenvoornederland_scraper import fetch_live_search as fetch_wvn
+from scrapers.workable_scraper import fetch_live_search as fetch_workable
 from scrapers.workday_scraper import fetch_live_search as fetch_workday
 from scrapers.workday_scraper import parse_search_results as parse_workday
 
@@ -471,6 +474,21 @@ def scrape_no_keyword_platforms_live(config: dict) -> list[dict]:
             jobs += _safe_fetch(
                 f"join:{company['name']}",
                 fetch_join, handle=company["join_handle"], source=company["name"],
+            ) or []
+        if company.get("lever_handle"):
+            jobs += _safe_fetch(
+                f"lever:{company['name']}",
+                fetch_lever, handle=company["lever_handle"], source=company["name"],
+            ) or []
+        if company.get("workable_handle"):
+            jobs += _safe_fetch(
+                f"workable:{company['name']}",
+                fetch_workable, handle=company["workable_handle"], source=company["name"],
+            ) or []
+        if company.get("teamtailor_handle"):
+            jobs += _safe_fetch(
+                f"teamtailor:{company['name']}",
+                fetch_teamtailor, handle=company["teamtailor_handle"], source=company["name"],
             ) or []
 
     return jobs

@@ -25,15 +25,16 @@ ClaudeBot/Claude-User/Claude-SearchBot on everything except /admin/ and
 /api/cron/ -- and llms.txt documents this export as CC0. Explicit
 permission on an unprotected endpoint, not a bypass.
 
-7 of the ~14 ATS providers in Pegel's export are ones this project has a
+10 of the ~14 ATS providers in Pegel's export are ones this project has a
 scraper for (ashby, greenhouse, recruitee, smartrecruiters, deel,
-personio, join) -- see SUPPORTED_PROVIDERS below for the mapping. Personio
-and join.com were the two biggest gaps (146 and 85 companies
-respectively) until scrapers/personio_scraper.py and scrapers/
-join_scraper.py were built; lever, workable, and teamtailor remain
-unsupported (17, 12, 6 companies here -- smaller in this particular
-sample, though Lever especially is common enough elsewhere that its real
-value is likely understated by Pegel's Berlin-specific slice).
+personio, join, lever, workable, teamtailor) -- see SUPPORTED_PROVIDERS
+below for the mapping. Personio and join.com were the two biggest gaps
+(146 and 85 companies respectively) until scrapers/personio_scraper.py and
+scrapers/join_scraper.py were built; lever, workable, and teamtailor were
+smaller in this particular sample (22/11/10 companies) but round out every
+provider Pegel's own dataset currently uses a scraper for -- Lever
+especially is common enough elsewhere that its real value is likely
+understated by Pegel's Berlin-specific slice.
 
 Never writes to the real companies.yaml. Writes a staging YAML file +
 plain-text report, same review-before-merge discipline as the other
@@ -72,6 +73,9 @@ SUPPORTED_PROVIDERS = {
     # 301s to the real https://join.com/companies/{slug} page (confirmed
     # live), still a valid human-visitable career_url either way.
     "join": ("join", "join_handle", "https://join.com/companies/{handle}"),
+    "lever": ("lever", "lever_handle", "https://jobs.lever.co/{handle}"),
+    "workable": ("workable", "workable_handle", "https://apply.workable.com/{handle}/"),
+    "teamtailor": ("teamtailor", "teamtailor_handle", "https://{handle}.teamtailor.com"),
 }
 
 
