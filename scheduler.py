@@ -23,8 +23,10 @@ from scrapers.getnoticed_scraper import fetch_live_search as fetch_getnoticed
 from scrapers.google_scraper import fetch_live_search as fetch_google
 from scrapers.greenhouse_scraper import fetch_live_search as fetch_greenhouse
 from scrapers.homerun_scraper import fetch_live_search as fetch_homerun
+from scrapers.join_scraper import fetch_live_search as fetch_join
 from scrapers.jobylon_scraper import fetch_live_search as fetch_jobylon
 from scrapers.mollie_scraper import fetch_live_search as fetch_mollie
+from scrapers.personio_scraper import fetch_live_search as fetch_personio
 from scrapers.oracle_scraper import fetch_live_search as fetch_oracle
 from scrapers.phenom_scraper import fetch_live_search as fetch_phenom
 from scrapers.radancy_scraper import fetch_live_search as fetch_radancy
@@ -418,10 +420,10 @@ def scrape_werkenvoornederland_live(config: dict) -> list[dict]:
 
 
 def scrape_no_keyword_platforms_live(config: dict) -> list[dict]:
-    # Greenhouse, Jobylon, Homerun, Recruitee, UWV, VodafoneZiggo, Ashby and
-    # Mollie have no (usable) server-side keyword filter -- each returns the
-    # full current job list in one call, so no per-keyword loop is needed
-    # (matching/scorer.py filters locally).
+    # Greenhouse, Jobylon, Homerun, Recruitee, UWV, VodafoneZiggo, Ashby,
+    # Mollie, Personio and join.com have no (usable) server-side keyword
+    # filter -- each returns the full current job list in one call, so no
+    # per-keyword loop is needed (matching/scorer.py filters locally).
     jobs = []
 
     for company in config["companies"]:
@@ -459,6 +461,16 @@ def scrape_no_keyword_platforms_live(config: dict) -> list[dict]:
             jobs += _safe_fetch(
                 f"mollie:{company['name']}",
                 fetch_mollie, base_url=company["mollie_base_url"], source=company["name"],
+            ) or []
+        if company.get("personio_handle"):
+            jobs += _safe_fetch(
+                f"personio:{company['name']}",
+                fetch_personio, handle=company["personio_handle"], source=company["name"],
+            ) or []
+        if company.get("join_handle"):
+            jobs += _safe_fetch(
+                f"join:{company['name']}",
+                fetch_join, handle=company["join_handle"], source=company["name"],
             ) or []
 
     return jobs

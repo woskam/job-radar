@@ -25,13 +25,15 @@ ClaudeBot/Claude-User/Claude-SearchBot on everything except /admin/ and
 /api/cron/ -- and llms.txt documents this export as CC0. Explicit
 permission on an unprotected endpoint, not a bypass.
 
-Only 5 of the ~14 ATS providers in Pegel's export are ones this project
-already has a scraper for (ashby, greenhouse, recruitee, smartrecruiters,
-deel) -- see SUPPORTED_PROVIDERS below for the mapping and
-UNSUPPORTED_PROVIDER_NOTE for what's deliberately skipped (personio and
-join.com are by far the largest: 146 and 85 companies respectively --
-easily the highest-value next scrapers to build, just out of scope for
-"import an existing export").
+7 of the ~14 ATS providers in Pegel's export are ones this project has a
+scraper for (ashby, greenhouse, recruitee, smartrecruiters, deel,
+personio, join) -- see SUPPORTED_PROVIDERS below for the mapping. Personio
+and join.com were the two biggest gaps (146 and 85 companies
+respectively) until scrapers/personio_scraper.py and scrapers/
+join_scraper.py were built; lever, workable, and teamtailor remain
+unsupported (17, 12, 6 companies here -- smaller in this particular
+sample, though Lever especially is common enough elsewhere that its real
+value is likely understated by Pegel's Berlin-specific slice).
 
 Never writes to the real companies.yaml. Writes a staging YAML file +
 plain-text report, same review-before-merge discipline as the other
@@ -65,6 +67,11 @@ SUPPORTED_PROVIDERS = {
     "recruitee": ("recruitee", "recruitee_company_slug", "https://{handle}.recruitee.com"),
     "smartrecruiters": ("smartrecruiters", "smartrecruiters_company_id", "https://jobs.smartrecruiters.com/{handle}/"),
     "deel": ("deel", "deel_company_slug", "https://jobs.deel.com/{handle}"),
+    "personio": ("personio", "personio_handle", "https://{handle}.jobs.personio.de"),
+    # Pegel's ats_handle for join.com is the numeric company id -- this URL
+    # 301s to the real https://join.com/companies/{slug} page (confirmed
+    # live), still a valid human-visitable career_url either way.
+    "join": ("join", "join_handle", "https://join.com/companies/{handle}"),
 }
 
 
@@ -125,7 +132,7 @@ def main() -> None:
     print(f"{len(pegel_companies)} companies in Pegel's export.")
 
     candidates, skipped = to_candidates(pegel_companies)
-    print(f"{len(candidates)} candidates on a supported ATS (ashby/greenhouse/recruitee/smartrecruiters/deel).")
+    print(f"{len(candidates)} candidates on a supported ATS ({'/'.join(sorted(SUPPORTED_PROVIDERS))}).")
     if skipped:
         print("Skipped (unsupported platform, no scraper yet):")
         for provider, count in skipped.most_common():

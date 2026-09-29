@@ -205,6 +205,20 @@ def detect_radancy(html, url, final_url):
     return {"ats": "radancy", "radancy_base_url": f"https://{urlparse(final_url).netloc}"}
 
 
+def detect_personio(html, url, final_url):
+    m = re.search(r'([a-z0-9-]+)\.jobs\.personio\.(?:de|com)', html)
+    if not m:
+        return None
+    return {"ats": "personio", "personio_handle": m.group(1)}
+
+
+def detect_join(html, url, final_url):
+    m = re.search(r'join\.com/companies/([a-zA-Z0-9_-]+)', html)
+    if not m:
+        return None
+    return {"ats": "join", "join_handle": m.group(1)}
+
+
 DETECTORS = [
     detect_workday,
     detect_greenhouse,
@@ -223,6 +237,8 @@ DETECTORS = [
     detect_getnoticed,
     detect_successfactors,
     detect_radancy,
+    detect_personio,
+    detect_join,
 ]
 
 
@@ -344,6 +360,22 @@ def verify_radancy(fields):
     return jobs, parse_total_results(html)
 
 
+def verify_personio(fields):
+    from scrapers.personio_scraper import fetch_live_search
+    return fetch_live_search(handle=fields["personio_handle"], source="test")
+
+
+def verify_join(fields):
+    # Same page-size-cap situation as Workday/Phenom/Oracle/Radancy --
+    # fetch_live_search only ever sees the first page (join.com's frontend
+    # paginates further via an undocumented GraphQL endpoint, not
+    # reverse-engineered here); parse_total reports the tenant's real count.
+    from scrapers.join_scraper import _fetch_raw, parse_search_results, parse_total
+    slug, next_data = _fetch_raw(handle=fields["join_handle"])
+    jobs = parse_search_results(next_data, slug, source="test")
+    return jobs, parse_total(next_data)
+
+
 VERIFIERS = {
     "workday": verify_workday,
     "greenhouse": verify_greenhouse,
@@ -362,6 +394,8 @@ VERIFIERS = {
     "getnoticed": verify_getnoticed,
     "sap_successfactors": verify_successfactors,
     "radancy": verify_radancy,
+    "personio": verify_personio,
+    "join": verify_join,
 }
 
 HINT_PATTERNS = [
