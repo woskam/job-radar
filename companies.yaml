@@ -7875,3 +7875,62 @@ companies:
     teamtailor_handle: "yonder"
     segment: "startup"
     note: "auto-detected via add_company.py on 2026-09-29; confirmed 7 postings live; sourced via Northzone's public portfolio page"
+
+
+  # ---------------------------------------------------------------------
+  # VC portfolio round 3: Sequoia Capital and EQT Ventures (see
+  # vc_portfolios.py) -- both only expose a partial company list in raw
+  # HTML (Sequoia: a curated 21-company 'greatest hits' subset; EQT
+  # Ventures: the first alphabetical batch of ~21-25 behind client-side
+  # pagination), so yield is intentionally small -- 1 via Sequoia (most of
+  # its list is huge, already-covered names or unsupported platforms), 5
+  # via EQT Ventures. Documented as partial, not a bug, in
+  # vc_portfolios.py's own module docstring.
+  # ---------------------------------------------------------------------
+  - name: "1X"
+    category: "startup"
+    career_url: "https://www.1x.tech/careers"
+    ats: "ashby"
+    ashby_board_token: "1x"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-29; confirmed 92 postings live; sourced via EQT Ventures' public portfolio page (first alphabetical batch only, not the full portfolio)"
+
+  - name: "Cisco"
+    category: "startup"
+    career_url: "https://careers.cisco.com/global/en/home"
+    ats: "phenom"
+    phenom_base_url: "https://careers.cisco.com/global/en/home"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-29; confirmed 2626 postings live (this page returns 20); sourced via Sequoia Capital's public portfolio page (a curated subset, not the full portfolio)"
+
+  - name: "Codacy"
+    category: "startup"
+    career_url: "https://www.codacy.com/careers"
+    ats: "personio"
+    personio_handle: "qamine-portugal"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-29; confirmed 1 postings live; sourced via EQT Ventures' public portfolio page (first alphabetical batch only, not the full portfolio)"
+
+  - name: "ecoplanet"
+    category: "startup"
+    career_url: "https://www.ecoplanet.tech/"
+    ats: "personio"
+    personio_handle: "ecoplanet-green-operations-gmbh"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-29; confirmed 7 postings live; sourced via EQT Ventures' public portfolio page (first alphabetical batch only, not the full portfolio)"
+
+  - name: "Endgame"
+    category: "startup"
+    career_url: "https://www.endgame.io/careers"
+    ats: "ashby"
+    ashby_board_token: "Endgame"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-29; confirmed 4 postings live; sourced via EQT Ventures' public portfolio page (first alphabetical batch only, not the full portfolio)"
+
+  - name: "Flow Engineering"
+    category: "startup"
+    career_url: "https://www.flowengineering.com/careers"
+    ats: "ashby"
+    ashby_board_token: "flowengineering"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-29; confirmed 31 postings live; sourced via EQT Ventures' public portfolio page (first alphabetical batch only, not the full portfolio)"
