@@ -48,6 +48,29 @@ add_company.py's fetch() does:
       the last one is the web agency that built index's own site and
       appears on every single detail page.
 
+    - sequoia (sequoiacap.com/our-companies/): only 21 curated "greatest
+      hits" links to ./companies/<slug> (SpaceX, Airbnb, Nvidia, Apple,
+      Google, Stripe, ...), not the full portfolio -- Sequoia's own site
+      never exposes the rest in raw HTML, so this stays a small, partial
+      list by design, not something a smarter parser would fix. Kept
+      anyway since 21 extra fetches is cheap; the net new-company yield
+      is expected to be low since most of these are already-huge, already
+      -covered names. Each ./companies/<slug> page's <h1> gives the name
+      and the first external link outside sequoiacap.com/linkedin.com/
+      x.com/twitter.com gives the real site.
+
+    - eqt_ventures (eqtgroup.com, the fund-filtered "browse all
+      companies" URL -- /about/current-portfolio?fund=eqt_ventures_i,
+      eqt_ventures_ii,eqt_ventures_iii): only 25 unique companies in raw
+      HTML (1X, AnyDesk, Anyfin, Codacy, Einride, Fly.io, ...), clearly
+      the first alphabetical batch (1x..f) -- the rest sits behind
+      client-side infinite-scroll a plain GET can't reach, so like
+      Sequoia this is a partial, first-batch-only list, not a bug to fix
+      later. Each /about/current-portfolio/<slug> detail page's <h1>
+      gives the name and the first external link outside eqtgroup.com/
+      linkedin.com/x.com/twitter.com/youtube.com/instagram.com/
+      facebook.com gives the real site.
+
   SKIPPED (JS-rendered / image-carousel, no data in raw HTML -- confirmed
   with Wychert, not worth a headless browser per CLAUDE.md's "last resort,
   not a recurring dependency"):
@@ -55,18 +78,6 @@ add_company.py's fetch() does:
     - Atomico (atomico.com/portfolio): HTTP 429 on first request --
       treated as rate-limiting, not pushed further.
     - Lakestar (lakestar.com/portfolio): logo images only, no links.
-
-  SKIPPED (confirmed but low-yield or not fully solvable without a
-  headless browser -- not worth building a bespoke parser for):
-    - Sequoia Capital (sequoiacap.com/our-companies): only ~21 curated
-      companies in raw HTML, not the full portfolio -- too small a yield
-      to justify a dedicated parser.
-    - EQT Ventures (eqtgroup.com/private-capital/eqt-ventures): the
-      "Browse all companies" URL
-      (/about/current-portfolio?fund=eqt_ventures_i,eqt_ventures_ii,eqt_ventures_iii)
-      exists, but its raw HTML only contains 30 unique companies -- the
-      rest sits behind client-side pagination/infinite-scroll that a
-      plain GET doesn't reach.
 """
 import time
 from urllib.parse import urlparse
@@ -86,8 +97,12 @@ BALDERTON_URL = "https://www.balderton.com/companies/"
 NORTHZONE_URL = "https://northzone.com/portfolio"
 ACCEL_URL = "https://accel.com/companies"
 INDEX_VENTURES_URL = "https://www.indexventures.com/companies/"
+SEQUOIA_URL = "https://www.sequoiacap.com/our-companies/"
+EQT_VENTURES_URL = "https://eqtgroup.com/about/current-portfolio?fund=eqt_ventures_i%2ceqt_ventures_ii%2ceqt_ventures_iii"
 
 INDEX_VENTURES_EXCLUDED_DOMAINS = ("indexventures.com", "x.com", "twitter.com", "linkedin.com", "notoptional.eu")
+SEQUOIA_EXCLUDED_DOMAINS = ("sequoiacap.com", "linkedin.com", "x.com", "twitter.com")
+EQT_VENTURES_EXCLUDED_DOMAINS = ("eqtgroup.com", "linkedin.com", "x.com", "twitter.com", "youtube.com", "instagram.com", "facebook.com")
 
 
 def _hostname_matches(href: str, domains: tuple[str, ...]) -> bool:
@@ -277,9 +292,98 @@ def index_ventures_candidates() -> list[dict]:
     return candidates
 
 
+def sequoia_candidates() -> list[dict]:
+    resp = fetch(SEQUOIA_URL)
+    if resp is None:
+        return []
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    # (slug, name) from the listing page itself -- the detail page has no
+    # <h1> and its <h2>s are section headers ("Milestones", "Team", ...),
+    # not the company name, so the name is captured here instead, from the
+    # <h2> inside each card link (confirmed live: "SpaceX" for spacex).
+    rows: list[tuple[str, str]] = []
+    seen_slugs = set()
+    for link in soup.select('a[href^="./companies/"]'):
+        slug = link.get("href", "").removeprefix("./companies/").strip("/")
+        name_el = link.find("h2")
+        if slug and name_el and slug not in seen_slugs:
+            seen_slugs.add(slug)
+            rows.append((slug, name_el.get_text(strip=True)))
+
+    candidates = []
+    for slug, name in rows:
+        time.sleep(DETAIL_FETCH_DELAY)
+        detail_resp = fetch(f"https://www.sequoiacap.com/companies/{slug}")
+        if detail_resp is None:
+            continue
+        detail = BeautifulSoup(detail_resp.text, "html.parser")
+        website_link = next(
+            (
+                a for a in detail.find_all("a", href=True)
+                if a["href"].startswith("http") and not _hostname_matches(a["href"], SEQUOIA_EXCLUDED_DOMAINS)
+            ),
+            None,
+        )
+        if not website_link:
+            continue
+        candidates.append({
+            "name": name,
+            "website": website_link["href"].strip(),
+            "category": "startup",
+            "source_note": "sourced via Sequoia Capital's public portfolio page (a curated subset, not the full portfolio)",
+        })
+    return candidates
+
+
+def eqt_ventures_candidates() -> list[dict]:
+    resp = fetch(EQT_VENTURES_URL)
+    if resp is None:
+        return []
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    slugs = []
+    seen_slugs = set()
+    for link in soup.select('a[href^="/about/current-portfolio/"]'):
+        href = link.get("href", "")
+        slug = href.removeprefix("/about/current-portfolio/").split("?")[0].strip("/")
+        if not slug or "/" in slug or slug in ("funds", "divestments"):
+            continue
+        if slug not in seen_slugs:
+            seen_slugs.add(slug)
+            slugs.append(slug)
+
+    candidates = []
+    for slug in slugs:
+        time.sleep(DETAIL_FETCH_DELAY)
+        detail_resp = fetch(f"https://eqtgroup.com/about/current-portfolio/{slug}")
+        if detail_resp is None:
+            continue
+        detail = BeautifulSoup(detail_resp.text, "html.parser")
+        h1 = detail.find("h1")
+        website_link = next(
+            (
+                a for a in detail.find_all("a", href=True)
+                if a["href"].startswith("http") and not _hostname_matches(a["href"], EQT_VENTURES_EXCLUDED_DOMAINS)
+            ),
+            None,
+        )
+        if not h1 or not website_link:
+            continue
+        candidates.append({
+            "name": h1.get_text(strip=True),
+            "website": website_link["href"].strip(),
+            "category": "startup",
+            "source_note": "sourced via EQT Ventures' public portfolio page (first alphabetical batch only, not the full portfolio)",
+        })
+    return candidates
+
+
 VC_LISTERS = {
     "balderton": balderton_candidates,
     "northzone": northzone_candidates,
     "accel": accel_candidates,
     "index_ventures": index_ventures_candidates,
+    "sequoia": sequoia_candidates,
+    "eqt_ventures": eqt_ventures_candidates,
 }
