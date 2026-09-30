@@ -71,6 +71,31 @@ add_company.py's fetch() does:
       linkedin.com/x.com/twitter.com/youtube.com/instagram.com/
       facebook.com gives the real site.
 
+    - antler (antler.co/portfolio): Webflow CMS + FinSweet CMS Filter,
+      the richest listing of any VC here -- every div.portco_card already
+      carries name, sector, country, AND the real external website with
+      no detail-page hop at all. Country comes from the first tag's own
+      fs-cmsfilter-field attribute (e.g. fs-cmsfilter-field="UK"), sector
+      from the second tag. Paginated the same way as northzone
+      (?<hash>_page=N), confirmed live across 21 pages / 1081 cards
+      (2026-09-30). Requested specifically for European coverage --
+      antler.co/location/<country> pages exist but only show a small
+      ~11-company "featured" carousel with no pagination, so the country
+      filter is applied in Python against the full paginated /portfolio
+      listing instead (ANTLER_EUROPE_COUNTRIES), not via that URL.
+
+      Deliberately built against antler.co directly rather than the
+      third-party GitHub mirror yc-oss-style repos exist for (e.g.
+      yigitmeteozcan/startups, MIT-licensed, which also covers Antler
+      plus Techstars/Plug and Play/500 Global/Alchemist/Entrepreneur
+      First) -- confirmed with Wychert: for something feeding a
+      commercial product, go to each accelerator's own public page
+      directly, same as every other VC lister here, not through an
+      unofficial aggregator of unclear provenance for the underlying
+      data. The mirror's count (1079) lined up closely with this
+      first-party count (1081), which was a useful cross-check but not a
+      reason to depend on it.
+
   SKIPPED (JS-rendered / image-carousel, no data in raw HTML -- confirmed
   with Wychert, not worth a headless browser per CLAUDE.md's "last resort,
   not a recurring dependency"):
@@ -99,10 +124,22 @@ ACCEL_URL = "https://accel.com/companies"
 INDEX_VENTURES_URL = "https://www.indexventures.com/companies/"
 SEQUOIA_URL = "https://www.sequoiacap.com/our-companies/"
 EQT_VENTURES_URL = "https://eqtgroup.com/about/current-portfolio?fund=eqt_ventures_i%2ceqt_ventures_ii%2ceqt_ventures_iii"
+ANTLER_URL = "https://www.antler.co/portfolio"
 
 INDEX_VENTURES_EXCLUDED_DOMAINS = ("indexventures.com", "x.com", "twitter.com", "linkedin.com", "notoptional.eu")
 SEQUOIA_EXCLUDED_DOMAINS = ("sequoiacap.com", "linkedin.com", "x.com", "twitter.com")
 EQT_VENTURES_EXCLUDED_DOMAINS = ("eqtgroup.com", "linkedin.com", "x.com", "twitter.com", "youtube.com", "instagram.com", "facebook.com")
+
+# Country names as they appear in Antler's own fs-cmsfilter-field tags
+# (confirmed live: "UK" not "United Kingdom", "Netherlands" not "The
+# Netherlands", ...). Includes a few plausible European countries never
+# seen in the live sample (2026-09-30), so a future refresh doesn't
+# silently miss them if Antler adds a cohort there.
+ANTLER_EUROPE_COUNTRIES = {
+    "UK", "Germany", "France", "Netherlands", "Sweden", "Norway", "Denmark",
+    "Finland", "Portugal", "Spain", "Ireland", "Belgium", "Italy", "Poland",
+    "Austria", "Switzerland",
+}
 
 
 def _hostname_matches(href: str, domains: tuple[str, ...]) -> bool:
@@ -379,6 +416,46 @@ def eqt_ventures_candidates() -> list[dict]:
     return candidates
 
 
+def _antler_category(sector: str | None) -> str:
+    if not sector:
+        return "startup"
+    return sector.strip().lower().replace(" ", "_").replace("/", "_")
+
+
+def antler_candidates() -> list[dict]:
+    candidates = []
+    url = ANTLER_URL
+    while url:
+        resp = fetch(url)
+        if resp is None:
+            break
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for card in soup.select("div.portco_card"):
+            name_el = card.select_one('[fs-cmsfilter-field="name"]')
+            tags = card.select(".portco_card_tags .tag_small_wrap")
+            website_link = card.select_one("a.clickable_link")
+            if not name_el or not tags or not website_link or not website_link.get("href"):
+                continue
+
+            country = tags[0].get("fs-cmsfilter-field")
+            if country not in ANTLER_EUROPE_COUNTRIES:
+                continue
+            sector = tags[1].get_text(strip=True) if len(tags) > 1 else None
+
+            candidates.append({
+                "name": name_el.get_text(strip=True),
+                "website": website_link["href"].strip(),
+                "category": _antler_category(sector),
+                "source_note": f"sourced via Antler's public portfolio page (country: {country})",
+            })
+
+        next_link = soup.select_one(".w-pagination-next")
+        url = f"{ANTLER_URL}{next_link['href']}" if next_link and next_link.get("href") else None
+        if url:
+            time.sleep(DETAIL_FETCH_DELAY)
+    return candidates
+
+
 VC_LISTERS = {
     "balderton": balderton_candidates,
     "northzone": northzone_candidates,
@@ -386,4 +463,5 @@ VC_LISTERS = {
     "index_ventures": index_ventures_candidates,
     "sequoia": sequoia_candidates,
     "eqt_ventures": eqt_ventures_candidates,
+    "antler": antler_candidates,
 }
