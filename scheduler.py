@@ -625,14 +625,29 @@ def push_to_hub(conn: sqlite3.Connection, config: dict) -> None:
         "listings": listings,
     }
     try:
-        requests.post(
+        resp = requests.post(
             f"{hub_url.rstrip('/')}/ingest",
             json=payload,
             headers={"Authorization": f"Bearer {os.environ.get('HUB_PUSH_TOKEN')}"},
-            timeout=30,
+            timeout=120,
         )
     except requests.exceptions.RequestException as exc:
         print(f"[hub_push] skipped, hub unreachable: {exc}")
+        return
+
+    # A non-2xx response (e.g. nginx's own 413 when a payload outgrew its
+    # client_max_body_size -- exactly what silently happened here for
+    # months, since nothing checked this before) must not disappear the
+    # way it did previously: no exception is raised for an HTTP error
+    # status, only for network-level failures like the except above, so
+    # this needs its own explicit check. Reuses the existing scrape-
+    # failure Telegram digest (_report_scrape_failures) rather than a
+    # separate alerting path -- a failed push is exactly the kind of
+    # thing that digest exists to surface.
+    if not resp.ok:
+        message = f"hub_push: HTTP {resp.status_code}: {resp.text[:200]}"
+        SCRAPE_FAILURES.append(message)
+        print(f"[hub_push] {message}")
 
 
 def _report_scrape_failures(conn: sqlite3.Connection, dry_run: bool) -> None:
