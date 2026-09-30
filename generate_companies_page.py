@@ -104,11 +104,30 @@ TEMPLATE = """<!doctype html>
       </table>
     </main>
 
-    <footer>
-      <a href="https://github.com/woskam/job-radar">job-radar</a> &middot;
-      <a href="https://github.com/woskam/job-radar-hub">job-radar-hub</a> &middot;
-      <a href="https://github.com/woskam/job-radar-site">this site's source</a> &middot;
-      <a href="/privacy">privacy</a>
+    <footer class="site-footer" role="contentinfo">
+      <div class="site-footer-grid">
+        <div>
+          <h4>Product</h4>
+          <a href="/jobs">Jobs</a>
+          <a href="/companies">Companies</a>
+          <a href="/alerts">Alerts</a>
+        </div>
+        <div>
+          <h4>Developers</h4>
+          <a href="/developers">For developers</a>
+          <a href="/api">API docs</a>
+          <a href="https://github.com/woskam/job-radar">job-radar</a>
+          <a href="https://github.com/woskam/job-radar-hub">job-radar-hub</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="/privacy">Privacy</a>
+        </div>
+      </div>
+      <div class="site-footer-bottom">
+        <span>&copy; 2026 12GetAJob</span>
+        <a href="https://github.com/woskam/job-radar-site">This site's source</a>
+      </div>
     </footer>
   </div>
 
