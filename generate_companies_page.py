@@ -38,7 +38,10 @@ TEMPLATE = """<!doctype html>
   <meta property="og:title" content="12GetAJob Companies">
   <meta property="og:description" content="Companies 12GetAJob tracks for job listings.">
   <link rel="canonical" href="https://12getajob.com/companies">
-  <link rel="stylesheet" href="/assets/style.css?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css?v=3">
   <script type="module" src="/assets/analytics.js"></script>
   <style>
     .skip-link {{
@@ -105,6 +108,25 @@ TEMPLATE = """<!doctype html>
     </main>
 
     <footer class="site-footer" role="contentinfo">
+      <div class="site-footer-grid">
+        <div>
+          <h4>Product</h4>
+          <a href="/jobs">Jobs</a>
+          <a href="/companies">Companies</a>
+          <a href="/alerts">Alerts</a>
+        </div>
+        <div>
+          <h4>Developers</h4>
+          <a href="/developers">For developers</a>
+          <a href="/api">API docs</a>
+          <a href="https://github.com/woskam/job-radar">job-radar</a>
+          <a href="https://github.com/woskam/job-radar-hub">job-radar-hub</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="/privacy">Privacy</a>
+        </div>
+      </div>
       <div class="site-footer-locations">
         <h4>Locations</h4>
         <div class="site-footer-locations-list">
@@ -138,25 +160,6 @@ TEMPLATE = """<!doctype html>
           <a href="/jobs/lisbon">Lisbon</a>
           <a href="/jobs/vienna">Vienna</a>
           <a href="/jobs/dubai">Dubai</a>
-        </div>
-      </div>
-      <div class="site-footer-grid">
-        <div>
-          <h4>Product</h4>
-          <a href="/jobs">Jobs</a>
-          <a href="/companies">Companies</a>
-          <a href="/alerts">Alerts</a>
-        </div>
-        <div>
-          <h4>Developers</h4>
-          <a href="/developers">For developers</a>
-          <a href="/api">API docs</a>
-          <a href="https://github.com/woskam/job-radar">job-radar</a>
-          <a href="https://github.com/woskam/job-radar-hub">job-radar-hub</a>
-        </div>
-        <div>
-          <h4>Legal</h4>
-          <a href="/privacy">Privacy</a>
         </div>
       </div>
       <div class="site-footer-bottom">
