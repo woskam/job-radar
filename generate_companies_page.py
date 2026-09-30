@@ -30,8 +30,8 @@ TEMPLATE = """<!doctype html>
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <title>12GetAJob Companies</title>
   <meta name="description" content="Companies 12GetAJob tracks for job listings.">
-  <meta name="theme-color" content="#1e5a8a" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#6fb3e8" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#0e0e12" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://12getajob.com/companies">
@@ -40,8 +40,8 @@ TEMPLATE = """<!doctype html>
   <link rel="canonical" href="https://12getajob.com/companies">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/style.css?v=4">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css?v=5">
   <script type="module" src="/assets/analytics.js"></script>
   <style>
     .skip-link {{
