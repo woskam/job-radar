@@ -422,7 +422,10 @@ def _antler_category(sector: str | None) -> str:
     return sector.strip().lower().replace(" ", "_").replace("/", "_")
 
 
-def antler_candidates() -> list[dict]:
+def _antler_all_candidates() -> list[dict]:
+    """Every Antler portfolio company, any country -- paginates the full
+    /portfolio listing (see antler_candidates/antler_rest_candidates for
+    the country-filtered views actually registered in VC_LISTERS)."""
     candidates = []
     url = ANTLER_URL
     while url:
@@ -438,15 +441,14 @@ def antler_candidates() -> list[dict]:
                 continue
 
             country = tags[0].get("fs-cmsfilter-field")
-            if country not in ANTLER_EUROPE_COUNTRIES:
-                continue
             sector = tags[1].get_text(strip=True) if len(tags) > 1 else None
 
             candidates.append({
                 "name": name_el.get_text(strip=True),
                 "website": website_link["href"].strip(),
                 "category": _antler_category(sector),
-                "source_note": f"sourced via Antler's public portfolio page (country: {country})",
+                "country": country,
+                "source_note": f"sourced via Antler's public portfolio page (country: {country or 'unspecified'})",
             })
 
         next_link = soup.select_one(".w-pagination-next")
@@ -454,6 +456,27 @@ def antler_candidates() -> list[dict]:
         if url:
             time.sleep(DETAIL_FETCH_DELAY)
     return candidates
+
+
+def _drop_country_field(candidates: list[dict]) -> list[dict]:
+    # "country" is only carried internally to filter on -- the shared
+    # candidate shape run_bulk/build_entry expect is name/website/
+    # category/source_note, same as every other VC lister.
+    return [{k: v for k, v in c.items() if k != "country"} for c in candidates]
+
+
+def antler_candidates() -> list[dict]:
+    all_candidates = _antler_all_candidates()
+    return _drop_country_field([c for c in all_candidates if c["country"] in ANTLER_EUROPE_COUNTRIES])
+
+
+def antler_rest_candidates() -> list[dict]:
+    """Every Antler company NOT in ANTLER_EUROPE_COUNTRIES -- the "antler"
+    lister already covers Europe (run and merged 2026-09-30); this is the
+    rest of the world, same source, same pipeline, just the complement of
+    that country filter."""
+    all_candidates = _antler_all_candidates()
+    return _drop_country_field([c for c in all_candidates if c["country"] not in ANTLER_EUROPE_COUNTRIES])
 
 
 VC_LISTERS = {
@@ -464,4 +487,5 @@ VC_LISTERS = {
     "sequoia": sequoia_candidates,
     "eqt_ventures": eqt_ventures_candidates,
     "antler": antler_candidates,
+    "antler_rest": antler_rest_candidates,
 }
