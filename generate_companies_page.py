@@ -105,6 +105,41 @@ TEMPLATE = """<!doctype html>
     </main>
 
     <footer class="site-footer" role="contentinfo">
+      <div class="site-footer-locations">
+        <h4>Locations</h4>
+        <div class="site-footer-locations-list">
+          <a href="/jobs/remote">Remote</a>
+          <a href="/jobs/san-francisco">San Francisco</a>
+          <a href="/jobs/new-york">New York</a>
+          <a href="/jobs/berlin">Berlin</a>
+          <a href="/jobs/london">London</a>
+          <a href="/jobs/amsterdam">Amsterdam</a>
+          <a href="/jobs/munich">Munich</a>
+          <a href="/jobs/paris">Paris</a>
+          <a href="/jobs/seattle">Seattle</a>
+          <a href="/jobs/singapore">Singapore</a>
+          <a href="/jobs/chicago">Chicago</a>
+          <a href="/jobs/bengaluru">Bengaluru</a>
+          <a href="/jobs/toronto">Toronto</a>
+          <a href="/jobs/dublin">Dublin</a>
+          <a href="/jobs/hamburg">Hamburg</a>
+          <a href="/jobs/austin">Austin</a>
+          <a href="/jobs/tokyo">Tokyo</a>
+          <a href="/jobs/utrecht">Utrecht</a>
+          <a href="/jobs/warsaw">Warsaw</a>
+          <a href="/jobs/madrid">Madrid</a>
+          <a href="/jobs/los-angeles">Los Angeles</a>
+          <a href="/jobs/sydney">Sydney</a>
+          <a href="/jobs/boston">Boston</a>
+          <a href="/jobs/denver">Denver</a>
+          <a href="/jobs/rotterdam">Rotterdam</a>
+          <a href="/jobs/barcelona">Barcelona</a>
+          <a href="/jobs/stockholm">Stockholm</a>
+          <a href="/jobs/lisbon">Lisbon</a>
+          <a href="/jobs/vienna">Vienna</a>
+          <a href="/jobs/dubai">Dubai</a>
+        </div>
+      </div>
       <div class="site-footer-grid">
         <div>
           <h4>Product</h4>
