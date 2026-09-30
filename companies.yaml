@@ -8292,3 +8292,109 @@ companies:
     ashby_board_token: "voltrac"
     segment: "startup"
     note: "auto-detected via add_company.py on 2026-09-30; confirmed 5 postings live; sourced via Antler's public portfolio page (country: Spain)"
+
+
+  # ---------------------------------------------------------------------
+  # VC portfolio: Antler, rest of world (see vc_portfolios.py's
+  # antler_rest_candidates) -- the complement of the Europe-only Antler
+  # round above: US/Singapore/Australia/India/Korea/Indonesia/Canada/
+  # Vietnam/Brazil/Malaysia/UAE/Kenya/Japan/Saudi Arabia/Nigeria (786
+  # candidates, 13 confirmed, 1 dropped as a duplicate -- 'Tactiq (US)'
+  # and 'Tactiq' share the same Ashby board, Antler lists the same
+  # company under two country tags).
+  # ---------------------------------------------------------------------
+  - name: "Agentio"
+    category: "b2b_software"
+    career_url: "https://www.agentio.com:443/careers"
+    ats: "ashby"
+    ashby_board_token: "agentio"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 22 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "Airalo"
+    category: "consumertech"
+    career_url: "https://www.airalo.com/airalo-careers/job-vacancies"
+    ats: "lever"
+    lever_handle: "airalo"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 24 postings live; sourced via Antler's public portfolio page (country: Singapore)"
+
+  - name: "American Housing Corp"
+    category: "industrials"
+    career_url: "https://www.americanhousing.com/careers"
+    ats: "ashby"
+    ashby_board_token: "american-housing"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 11 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "Coframe"
+    category: "b2b_software"
+    career_url: "https://www.coframe.com/careers"
+    ats: "ashby"
+    ashby_board_token: "Coframe"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 20 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "Conversion AI"
+    category: "b2b_software"
+    career_url: "https://conversion.ai/company/"
+    ats: "ashby"
+    ashby_board_token: "conversion"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 15 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "EonLabs.AI (formerly DataFlex AI)"
+    category: "b2b_software"
+    career_url: "https://jobs.lever.co/envato-2"
+    ats: "lever"
+    lever_handle: "envato-2"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 1 postings live; sourced via Antler's public portfolio page (country: Singapore)"
+
+  - name: "Folio"
+    category: "b2b_software"
+    career_url: "https://app.folioworks.com/jobs"
+    ats: "lever"
+    lever_handle: "meds"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 30 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "Inshur"
+    category: "fintech"
+    career_url: "https://inshur.com/careers"
+    ats: "ashby"
+    ashby_board_token: "inshur"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 6 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "Kenko"
+    category: "b2b_software"
+    career_url: "https://www.gokenko.com/"
+    ats: "lever"
+    lever_handle: "kenko"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 3 postings live; sourced via Antler's public portfolio page (country: India)"
+
+  - name: "Mycroft"
+    category: "b2b_software"
+    career_url: "https://www.mycroft.io/"
+    ats: "ashby"
+    ashby_board_token: "mycroft"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 5 postings live; sourced via Antler's public portfolio page (country: Canada)"
+
+  - name: "SweatPals"
+    category: "consumertech"
+    career_url: "https://sweatpals.com/"
+    ats: "ashby"
+    ashby_board_token: "sweatpals"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 5 postings live; sourced via Antler's public portfolio page (country: US)"
+
+  - name: "Tactiq"
+    category: "b2b_software"
+    career_url: "https://tactiq.io/careers"
+    ats: "ashby"
+    ashby_board_token: "tactiq"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 3 postings live; sourced via Antler's public portfolio page (country: Australia)"
