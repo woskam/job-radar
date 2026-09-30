@@ -38,7 +38,7 @@ TEMPLATE = """<!doctype html>
   <meta property="og:title" content="12GetAJob Companies">
   <meta property="og:description" content="Companies 12GetAJob tracks for job listings.">
   <link rel="canonical" href="https://12getajob.com/companies">
-  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/assets/style.css?v=2">
   <script type="module" src="/assets/analytics.js"></script>
   <style>
     .skip-link {{
