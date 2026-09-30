@@ -103,6 +103,33 @@ add_company.py's fetch() does:
     - Atomico (atomico.com/portfolio): HTTP 429 on first request --
       treated as rate-limiting, not pushed further.
     - Lakestar (lakestar.com/portfolio): logo images only, no links.
+
+    - Techstars (techstars.com/portfolio), Plug and Play
+      (plugandplaytechcenter.com/portfolio/), 500 Global (500.co/companies),
+      Alchemist (alchemistaccelerator.com/portfolio) -- checked 2026-09-30
+      as the other accelerators covered by the third-party mirror
+      (yigitmeteozcan/startups) that was explicitly rejected in favor of
+      going to each accelerator's own site directly (see antler above).
+      None of the four pan out the way antler.co did:
+        - Techstars: a Next.js app with React-Server-Component streaming.
+          The raw HTML does have 29 clean company cards (name, year,
+          sector chip, a[aria-label="Website"] link -- same shape as
+          accel), but no pagination URL, no __NEXT_DATA__ blob, and no
+          location field per card. Techstars has thousands of portfolio
+          companies historically; 29 is a negligible fraction, and with
+          no location field there's no way to filter to Europe on what
+          is visible anyway.
+        - Plug and Play: fully client-rendered, 0 links and almost no
+          text in raw HTML.
+        - 500 Global: same -- raw HTML has only social links and a login
+          portal link, no company data at all.
+        - Alchemist: only 5 curated "Top Companies" in raw HTML, followed
+          by a client-side "Load More" button and filter UI whose raw
+          HTML literally says "No startups found matching your criteria"
+          -- everything else loads only after JS interaction. Smaller
+          even than Sequoia's 21.
+      All four would need a headless browser to go further, so none are
+      built -- same reasoning as a16z/Atomico/Lakestar above.
 """
 import time
 from urllib.parse import urlparse
