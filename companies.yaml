@@ -8218,3 +8218,77 @@ companies:
     lever_handle: "getzuma"
     segment: "startup"
     note: "auto-detected via add_company.py on 2026-09-29; confirmed 6 postings live; YC batch Summer 2021"
+
+
+  # ---------------------------------------------------------------------
+  # VC portfolio: Antler, European countries only (see vc_portfolios.py)
+  # -- sourced directly from antler.co/portfolio (not a third-party
+  # mirror), filtered to UK/Germany/France/Netherlands/Sweden/Norway/
+  # Denmark/Finland/Portugal/Spain (296 candidates, 8 confirmed here).
+  # Low confirm rate vs. other VC rounds is expected -- Antler is a
+  # pre-seed accelerator, so most portfolio companies are too early to
+  # have a career page/ATS set up yet.
+  # ---------------------------------------------------------------------
+  - name: "Creem"
+    category: "fintech"
+    career_url: "https://www.creem.io/careers"
+    ats: "ashby"
+    ashby_board_token: "creem"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 5 postings live; sourced via Antler's public portfolio page (country: Sweden)"
+
+  - name: "Jack & Jill"
+    category: "b2b_software"
+    career_url: "https://www.jackandjill.ai/about-us"
+    ats: "ashby"
+    ashby_board_token: "jack-jill-external-ats"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 6 postings live; sourced via Antler's public portfolio page (country: UK)"
+
+  - name: "Mast"
+    category: "fintech"
+    career_url: "https://usemast.com/company/careers"
+    ats: "ashby"
+    ashby_board_token: "mast"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 2 postings live; sourced via Antler's public portfolio page (country: UK)"
+
+  - name: "Physikit"
+    category: "health_and_biotech"
+    career_url: "https://careers.smartrecruiters.com/Physikit"
+    ats: "smartrecruiters"
+    smartrecruiters_company_id: "Physikit"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 1 postings live; sourced via Antler's public portfolio page (country: Germany)"
+
+  - name: "Qorelo"
+    category: "b2b_software"
+    career_url: "https://www.qorelo.com/"
+    ats: "ashby"
+    ashby_board_token: "qorelo"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 3 postings live; sourced via Antler's public portfolio page (country: Germany)"
+
+  - name: "Spruce"
+    category: "energy_and_climatetech"
+    career_url: "https://www.spruce.eco/careers"
+    ats: "ashby"
+    ashby_board_token: "spruce"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 6 postings live; sourced via Antler's public portfolio page (country: UK)"
+
+  - name: "Track Titan"
+    category: "consumertech"
+    career_url: "https://www.tracktitan.io/careers"
+    ats: "personio"
+    personio_handle: "titan-academy"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 1 postings live; sourced via Antler's public portfolio page (country: UK)"
+
+  - name: "Voltrac"
+    category: "industrials"
+    career_url: "https://voltrac.eu/"
+    ats: "ashby"
+    ashby_board_token: "voltrac"
+    segment: "startup"
+    note: "auto-detected via add_company.py on 2026-09-30; confirmed 5 postings live; sourced via Antler's public portfolio page (country: Spain)"
