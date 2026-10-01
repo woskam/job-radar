@@ -880,10 +880,10 @@ companies:
   - name: "Amplitude"
     category: "b2b"
     career_url: "https://amplitude.com/careers"
-    ats: "greenhouse"
-    greenhouse_board_token: "amplitude"
+    ats: "ashby"
+    ashby_board_token: "amplitude"
     segment: "startup"
-    note: "auto-detected via add_company.py on 2026-09-21; confirmed 40 postings live; YC batch Winter 2012"
+    note: "auto-detected via add_company.py on 2026-09-21; confirmed 40 postings live; YC batch Winter 2012. Moved off Greenhouse to Ashby some time before 2026-10-01 (same board slug \"amplitude\") -- old greenhouse_board_token started 404ing, confirmed via the careers page's \"View jobs\" link to jobs.ashbyhq.com/amplitude and the Ashby posting-api directly."
 
   - name: "Anima"
     category: "healthcare"
