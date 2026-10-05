@@ -31,7 +31,9 @@
 #                             Angular template, no plain-HTTP-replayable API found yet)
 #   WBA (1x)                : gemeente_amsterdam
 #   TSF (1x)                : provincie_noord_holland
-#   werkenvoornederland.nl (6x): AIVD, MIVD, Rijkswaterstaat, Belastingdienst, Douane, DUO
+#   werkenvoornederland.nl (11x): AIVD, MIVD, Rijkswaterstaat, Belastingdienst, Douane, DUO,
+#                             Ministerie van Defensie, Ministerie van Justitie en Veiligheid,
+#                             Ministerie van Binnenlandse Zaken en Koninkrijksrelaties, NVWA, RIVM
 #   UWV (1x)                : UWV
 #   custom-built site, own scraper (2x): Mollie, VodafoneZiggo
 #   custom/unknown, not yet built (26x): G-Star RAW, Scotch & Soda, Suitsupply,
@@ -583,6 +585,39 @@ companies:
     ats: "werkenvoornederland"
     wvn_term: "DUO"
     wvn_employer_match: "Dienst Uitvoering Onderwijs"
+  - name: "Ministerie van Defensie"
+    category: "overheid"
+    career_url: "https://www.werkenvoornederland.nl/vacatures"
+    ats: "werkenvoornederland"
+    wvn_term: "Defensie"
+    wvn_employer_match: "Ministerie van Defensie"
+    note: "excludes MIVD, already tracked separately -- MIVD's own postings carry a distinct employer name on werkenvoornederland.nl"
+  - name: "Ministerie van Justitie en Veiligheid"
+    category: "overheid"
+    career_url: "https://www.werkenvoornederland.nl/vacatures"
+    ats: "werkenvoornederland"
+    wvn_term: "Justitie en Veiligheid"
+    wvn_employer_match: "Ministerie van Justitie en Veiligheid"
+    note: "also picks up its own named sub-units (Dienst Justitiele Inrichtingen, Justitiele ICT Organisatie) since they share the employer-name prefix; excludes separate bodies like Justid and de Inspectie Justitie en Veiligheid, which don't"
+  - name: "Ministerie van Binnenlandse Zaken en Koninkrijksrelaties"
+    category: "overheid"
+    career_url: "https://www.werkenvoornederland.nl/vacatures"
+    ats: "werkenvoornederland"
+    wvn_term: "Binnenlandse Zaken"
+    wvn_employer_match: "Binnenlandse Zaken"
+    note: "excludes AIVD and MIVD (tracked separately) and several BZK sub-agencies that post under a \"(Ministerie van BZK)\" abbreviated suffix rather than the spelled-out name (FMHaaglanden, Logius, Rijksvastgoedbedrijf, ...) -- worth adding as their own entries later if wanted"
+  - name: "NVWA"
+    category: "overheid"
+    career_url: "https://www.werkenvoornederland.nl/vacatures"
+    ats: "werkenvoornederland"
+    wvn_term: "NVWA"
+    wvn_employer_match: "Voedsel- en Warenautoriteit"
+  - name: "RIVM"
+    category: "overheid"
+    career_url: "https://www.werkenvoornederland.nl/vacatures"
+    ats: "werkenvoornederland"
+    wvn_term: "RIVM"
+    wvn_employer_match: "RIVM"
   - name: "UWV"
     category: "overheid"
     career_url: "https://www.uwv.nl/nl/werken-bij/vacatures"
