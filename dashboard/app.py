@@ -680,6 +680,33 @@ def update_status(job_id):
     return redirect(url_for("index"))
 
 
+@app.route("/jobs/bulk_reject", methods=["POST"])
+def bulk_reject():
+    # Scoped to the Needs review list on purpose -- the checkboxes that
+    # submit here only ever appear on the pending_approval filtered view
+    # (see index.html), and the WHERE clause re-enforces that server-side
+    # rather than trusting the posted IDs' current status: a job that's
+    # since moved on (e.g. approved from another tab/Telegram in between)
+    # is silently skipped instead of being rejected out from under that.
+    job_ids = [int(i) for i in request.form.getlist("job_ids") if i.isdigit()]
+    reason = request.form.get("reason", "").strip() or "Rejected via dashboard (bulk)"
+    if job_ids:
+        conn = get_db()
+        placeholders = ",".join("?" for _ in job_ids)
+        conn.execute(
+            f"UPDATE jobs SET status = 'rejected', rejected_at = CURRENT_TIMESTAMP, "
+            f"rejected_stage = 'approval', rejected_reason = ? "
+            f"WHERE id IN ({placeholders}) AND status = 'pending_approval'",
+            [reason, *job_ids],
+        )
+        conn.commit()
+        conn.close()
+    return_qs = request.form.get("return_qs", "").strip()
+    if return_qs:
+        return redirect(f"{url_for('index')}?{return_qs}")
+    return redirect(url_for("index"))
+
+
 def _cv_filename(extension: str, variant: str) -> str:
     name = _clean_filename_part(SENDER["name"])
     suffix = " (Short)" if variant == "short" else ""

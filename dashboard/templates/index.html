@@ -14,6 +14,20 @@
 
   .list-card { overflow: hidden; }
   .job-grid-cols { display: grid; grid-template-columns: minmax(0,2.4fr) minmax(0,1.3fr) minmax(0,1.2fr) 120px minmax(0,1.6fr); gap: 16px; }
+  .job-grid-cols.bulk-mode { grid-template-columns: 24px minmax(0,2.4fr) minmax(0,1.3fr) minmax(0,1.2fr) 120px minmax(0,1.6fr); }
+  .job-row-check { align-self: center; }
+
+  .bulk-bar {
+    display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+    border-bottom: 1px solid var(--divider-2); background: var(--surface-subtle); font-size: 13px;
+  }
+  .bulk-bar label { display: flex; align-items: center; gap: 6px; color: var(--text-body); }
+  .bulk-bar .bulk-count { color: var(--muted-2); }
+  .bulk-bar input[type=text] {
+    flex: 1 1 240px; max-width: 360px; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--border-input); background: #fff; font-size: 12.5px; color: var(--text-body);
+  }
+  .bulk-bar button:disabled { opacity: 0.45; cursor: not-allowed; }
   .list-head {
     padding: 12px 20px; border-bottom: 1px solid var(--divider-2); background: var(--surface-subtle);
     align-items: start;
@@ -102,8 +116,23 @@
   </div>
 
   <div class="card list-card">
+    {% if filters.status == 'pending_approval' %}
+    <form id="bulk-reject-form" method="post" action="{{ url_for('bulk_reject') }}">
+      <input type="hidden" name="return_qs" value="{{ request.query_string.decode() }}">
+      <div class="bulk-bar">
+        <label><input type="checkbox" id="bulk-select-all"> Select all on page</label>
+        <span class="bulk-count" id="bulk-count">0 selected</span>
+        <input type="text" name="reason" placeholder="reason (applies to all selected)">
+        <button type="submit" class="btn" id="bulk-reject-btn" disabled
+          onclick="return confirm('Reject ' + document.getElementById('bulk-count').textContent + '? This can\'t be undone in bulk.');">
+          Reject selected
+        </button>
+      </div>
+    </form>
+    {% endif %}
     <form method="get" action="{{ url_for('index') }}">
-      <div class="job-grid-cols list-head">
+      <div class="job-grid-cols list-head {{ 'bulk-mode' if filters.status == 'pending_approval' }}">
+        {% if filters.status == 'pending_approval' %}<div></div>{% endif %}
         <div>
           <span class="col-label">Title</span>
           <input type="text" name="title" value="{{ filters.title }}" placeholder="search...">
@@ -150,7 +179,10 @@
     {% for job in jobs %}
     {% set score = job['relevance_score'] or 0 %}
     {% set meta = status_meta(job['status']) %}
-      <div class="job-grid-cols job-row" style="display:grid;">
+      <div class="job-grid-cols job-row {{ 'bulk-mode' if filters.status == 'pending_approval' }}" style="display:grid;">
+        {% if filters.status == 'pending_approval' %}
+        <input type="checkbox" class="job-row-check bulk-check" name="job_ids" value="{{ job['id'] }}" form="bulk-reject-form">
+        {% endif %}
         <a href="{{ url_for('job_detail', job_id=job['id']) }}" target="_blank" class="job-row-link" style="display:contents; text-decoration:none; color:inherit;">
           <div style="min-width:0;">
             <div class="job-title">{{ job['title'] }}</div>
@@ -201,4 +233,28 @@
         {% endif %}
       </div>
     </div>
+  {% if filters.status == 'pending_approval' %}
+  <script>
+    (function () {
+      const checks = Array.from(document.querySelectorAll('.bulk-check'));
+      const selectAll = document.getElementById('bulk-select-all');
+      const count = document.getElementById('bulk-count');
+      const submitBtn = document.getElementById('bulk-reject-btn');
+
+      function refresh() {
+        const n = checks.filter((c) => c.checked).length;
+        count.textContent = n + ' selected';
+        submitBtn.disabled = n === 0;
+        selectAll.checked = n > 0 && n === checks.length;
+      }
+
+      selectAll.addEventListener('change', () => {
+        checks.forEach((c) => { c.checked = selectAll.checked; });
+        refresh();
+      });
+      checks.forEach((c) => c.addEventListener('change', refresh));
+      refresh();
+    })();
+  </script>
+  {% endif %}
 {% endblock %}
