@@ -3,7 +3,7 @@ import sqlite3
 
 import requests
 
-from notify.telegram_bot import answer_callback_query, edit_message_text, get_updates
+from notify.telegram_bot import answer_callback_query, edit_message_text, get_updates, send_message
 
 OFFSET_KEY = "telegram_update_offset"
 
@@ -74,12 +74,27 @@ def _handle_callback(conn: sqlite3.Connection, callback: dict) -> bool:
     message = callback.get("message") or {}
     chat_id = message.get("chat", {}).get("id")
     message_id = message.get("message_id")
+    if action == "approve":
+        label = "Approved -- writing the letter now."
+    else:
+        label = "Rejected. Reply to this message with a reason if you want to note one (optional)."
+    confirmation_text = f"{message.get('text', '')}\n\n{label}"
+
+    edited = False
     if chat_id and message_id:
-        if action == "approve":
-            label = "Approved -- writing the letter now."
-        else:
-            label = "Rejected. Reply to this message with a reason if you want to note one (optional)."
-        _try(edit_message_text, chat_id, message_id, f"{message.get('text', '')}\n\n{label}")
+        try:
+            edit_message_text(chat_id, message_id, confirmation_text)
+            edited = True
+        except requests.HTTPError:
+            pass
+    if not edited:
+        # Telegram refuses to edit a message once it's roughly 48h old --
+        # the common case when working through a backlog rather than
+        # approving/rejecting as things come in. Without this fallback the
+        # tap silently did nothing visible: the status updated correctly
+        # above, but nothing in the chat showed it, which is exactly what
+        # looked like "approve/reject doesn't work" from the Telegram side.
+        _try(send_message, confirmation_text)
 
     return True
 
