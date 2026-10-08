@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 LOCATION_SELECTOR = ".job-location, .sr-job-location, .job-list__location"
-TITLE_SELECTOR = ".job-list__title"
+TITLE_SELECTOR = ".job-list__title, .search-results-list__job-title"
 
 
 def _find_nearby_location(link_tag) -> str | None:

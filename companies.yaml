@@ -9,7 +9,8 @@
 #                             Samsung Benelux, Sony Benelux, NIBC Bank, Accenture
 #   SAP SuccessFactors (8x) : adidas, Under Armour, MediaMarkt NL, C&A, Heineken,
 #                             Triodos Bank, Knab, EY
-#   Radancy/TalentBrew (3x) : IKEA Netherlands, ING, politie
+#   Radancy/TalentBrew (4x) : IKEA Netherlands, ING, politie, L'Oréal Benelux (moved off
+#                             Avature before 2026-10-08)
 #   Dropr (2x)              : Action, ICI Paris XL
 #   Google Careers (1x)     : Google (reverse-engineered internal Closure/WIZ
 #                             page-data format, not a documented API)
@@ -17,7 +18,7 @@
 #   Eightfold AI (2x)       : Netflix, HSBC Netherlands
 #   Phenom (5x)             : eBay, ASN Bank, Mars Benelux, Procter & Gamble Benelux, BCG
 #   GetNoticed (2x)         : KPN, T-Mobile Netherlands (now Odido)
-#   Avature (1x)            : L'Oréal Benelux
+#   Avature (0x)            : none currently -- L'Oréal Benelux moved to Radancy
 #   Oracle Recruiting Cloud (4x): Uber, JPMorgan Amsterdam, American Express Benelux,
 #                             Citibank Amsterdam (search layer)
 #   Greenhouse (3x)         : bol.com, Anthropic, GitLab
@@ -303,8 +304,9 @@ companies:
   - name: "L'Oréal Benelux"
     category: "beauty"
     career_url: "https://careers.loreal.com/"
-    ats: "avature"
-    avature_base_url: "https://careers.loreal.com"
+    ats: "radancy"
+    radancy_base_url: "https://careers.loreal.com"
+    note: "moved off the old Avature portal template (/en_US/jobs/SearchJobsAJAXJSON, now 301s into an HTML shell) to Radancy at some point before 2026-10-08 -- found via a user report of a network error. Site-wide listing, not Benelux-filtered (no location param used): downstream keyword/location matching already handles that, same as other company-wide scrapers."
   - name: "Philips"
     category: "beauty"
     career_url: "https://www.careers.philips.com/nl/en/jobs"
